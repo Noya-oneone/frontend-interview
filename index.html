@@ -340,6 +340,11 @@
     }
   }
 
+  // ===== HTML 转义 =====
+  function esc(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   // ===== 渲染侧边栏 =====
   function renderNav(data, filter = "") {
     const nav = document.getElementById("nav");
@@ -354,13 +359,13 @@
 
       html += `<div class="cat-group">
         <div class="cat-title ${filter ? 'open' : ''}" onclick="toggleCat(this)">
-          <span class="arrow">▶</span>${icon} ${name}<span class="count">${filtered.length}</span>
+          <span class="arrow">▶</span>${icon} ${esc(name)}<span class="count">${filtered.length}</span>
         </div>
         <div class="cat-items ${filter ? 'open' : ''}">`;
       for (const file of filtered) {
         const path = cat === "_root" ? file : `${cat}/${file}`;
         const label = file.replace(/\.md$/, "");
-        html += `<a href="#${encodeURIComponent(path)}" onclick="loadDoc('${path.replace(/'/g, "\\'")}'); return false;" title="${label}">${label}</a>`;
+        html += `<a href="#${encodeURIComponent(path)}" onclick="loadDoc(decodeURIComponent('${encodeURIComponent(path)}')); return false;" title="${esc(label)}">${esc(label)}</a>`;
       }
       html += `</div></div>`;
     }
@@ -388,9 +393,9 @@
       const parts = path.replace(/\.md$/, "").split("/");
       if (parts.length > 1) {
         const catName = CAT_NAMES[parts[0]] || parts[0];
-        breadcrumb.innerHTML = `<span>${catName}</span> / ${parts.slice(1).join(" / ")}`;
+        breadcrumb.innerHTML = `<span>${esc(catName)}</span> / ${esc(parts.slice(1).join(" / "))}`;
       } else {
-        breadcrumb.innerHTML = `<span>综合专题</span> / ${parts[0].replace(/\.md$/, "")}`;
+        breadcrumb.innerHTML = `<span>综合专题</span> / ${esc(parts[0].replace(/\.md$/, ""))}`;
       }
 
       // 更新当前索引
