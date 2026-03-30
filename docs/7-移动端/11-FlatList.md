@@ -1,3 +1,6 @@
+# 11-FlatList
+
+```tsx
 // React Native FlatList 组件的使用
 
 import React, { useState, useEffect } from "react";
@@ -124,3 +127,4 @@ styleSheet.create({
 });
 
 export default FlatListScreen;
+```
