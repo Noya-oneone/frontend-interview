@@ -393,7 +393,8 @@
     const breadcrumb = document.getElementById("breadcrumb");
 
     try {
-      const res = await fetch(`docs/${encodeURIComponent(path)}`);
+      const encodedPath = path.split('/').map(s => encodeURIComponent(s)).join('/');
+      const res = await fetch(`docs/${encodedPath}`);
       if (!res.ok) throw new Error("Not found");
       const md = await res.text();
       contentEl.innerHTML = marked.parse(md);
