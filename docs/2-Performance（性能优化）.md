@@ -1,136 +1,242 @@
+# 前端性能优化
 
-# 性能优化方法
+## 一、性能指标
 
-## 产生白屏的原因
-* 白屏时间通常是指用户在加载网页时，屏幕一片空白的阶段。主要原因包括：
-    * 资源加载延迟：JS、CSS 或图片等资源加载缓慢，导致页面渲染延迟。
-    * JavaScript 阻塞：同步 JS 执行阻塞页面渲染。
-        * JavaScript 阻塞是指在页面加载过程中，浏览器在执行同步 JavaScript 代码时，会暂停后续的 HTML 解析和页面渲染。
-        * 解决方案：
-            * 异步加载 JS：将 JS 代码从头部加载到尾部，减少阻塞。
-            * 减少同步 JS 代码：尽量减少页面中同步 JS 代码的执行时间，如将复杂的计算任务交给 Web Worker 线程。
-            * 优化 JS 执行效率：使用 `WebAssembly` 或 `asm.js` 等技术，提升 JS 执行效率。
-    * 网络延迟：网络请求时间长，延迟了页面数据的获取和显示。
-    * 首屏渲染复杂：DOM 和 CSSOM 构建耗时，影响首屏渲染。
-    * 优化建议：懒加载资源、异步加载 JS、减少首屏复杂度。
+| 指标 | 全称 | 含义 | 目标 |
+|------|------|------|------|
+| **FP** | First Paint | 首次绘制（白屏结束） | < 1s |
+| **FCP** | First Contentful Paint | 首次有内容绘制 | < 1.8s |
+| **LCP** | Largest Contentful Paint | 最大内容绘制 | < 2.5s |
+| **FID** | First Input Delay | 首次输入延迟 | < 100ms |
+| **CLS** | Cumulative Layout Shift | 累计布局偏移 | < 0.1 |
+| **TTI** | Time to Interactive | 可交互时间 | < 3.8s |
+| **DCL** | DOMContentLoaded | DOM 解析完成 | - |
+| **L** | Load | 所有资源加载完成 | - |
 
-## 分析白屏时间： 白屏时间通常表现为从页面开始加载到开始呈现内容的时间段
+> 白屏时间 ≈ FP 时间点。优化目标是缩短 FCP 和 LCP。
 
-* 在时间轴上查看白屏时间。
-* 可以通过查看时间轴上的 DOMContentLoaded 或 load 事件，和与之相关的`时间差`来分析白屏时间。
-    * `DOMContentLoaded 事件（DCL）`：页面的 DOM 结构和 CSSOM 都已经加载完成，但图片、视频等媒体资源可能还未加载完成。
-    * `load 事件（L）`：页面的所有资源（包括图片、视频等媒体资源）都已经加载完成。
-* 白屏时间 = load 事件 - DOMContentLoaded 事件
-* 页面首次绘制： `First Paint（FP）` 1.5s
-* 首次呈现内容的时间点： `First Contentful Paint（FCP）` 1.5s
+---
 
+## 二、白屏原因分析
 
-* 获取静态资源阶段
-    * `压缩文件`（压缩代码体积）
-       * `Gzip压缩` - 压缩静态资源
-       * 去除不必要的代码 - `tree-shaking`
-       * CSS 文件压缩: 原子CSS写法、`TaliWindCSS`
-       * 图片压缩 (200kb以下)
-          * 使用 `WebP、AVIF` 等现代图像格式，具有更高的压缩率和更好的质量 
-          * 使用 `LazyLoad` 实现图片懒加载
-          * 使用 `srcset、sizes` 属性实现图片自适应，根据不同设备提供合适的图片尺寸
-          * 在线压缩工具：`TinyPNG`、`ImageOptim`
-            * `有损压缩`：通过降低图像质量来减少文件大小，如使用 `JPEG 格式`的压缩。 
-            * `无损压缩`: 在不降低图像质量的情况下减少文件大小，如使用 `PNG 格式`的压缩。
-          * 根据场景选择格式，
-            * `矢量图使用 SVG`：缩放不失真、文件体积小、可编辑
-            * `照片使用 JPEG`： (色彩丰富, 支持 24 位色深,压缩后的 JPEG 文件通常比 PNG 文件小,`有损压缩`)
-            * `透明图像使用 PNG` (支持透明度、`无损压缩`)
-          * CSS Sprite ：将多个小图标合并成一张大图，通过 CSS 显示不同部分，减少 HTTP 请求数。
-          * 占位符： 使用低分辨率占位符或颜色块在图片加载前占位，`避免布局抖动`。
-                * 模糊占位符（LQIP）： 使用模糊的低分辨率图像，逐渐替换为清晰的高分辨率图像。
-                * `src、data-src`
-    * `减少HTTP请求` 
-        * 合并文件： CSSSprites和内联图片
-        * `缓存`: (使用缓存策略，减少不必要的请求)、合理使用HTTP缓存头，让浏览器缓存静态资源
-            |**强缓存**|使用`Cache-Control`或`Expires`来指定资源在缓存中的有效期。
-            |**协商缓存**|当强缓存过期时，使用`ETag、If-Modified-Since`或`Last-Modified、If-Modified-Since`进行条件请求，服务器确认资源是否改变。| 
-        * KeepAlive：使用长连接，减少TCP连接数，提高传输效率
-    * `优化网络连接`：
-        * CDN: 使用内容分发网络（CDN）来分发静态资源，`缩短用户与资源服务器`的距离，`提高访问速度`
-        * `HTTP2`：HTTP2协议是HTTP协议的升级版本，可以`更快地`传输数据，提高传输效率
-        * HTTPS：使用HTTPS协议可以`加密传输数据`，防止数据被窃取、篡改、伪造
-* 解析渲染阶段 
-    * `SSR`：SSR（ServerSideRendering，服务器端渲染）
-        * 原理：`在服务器端将应用程序的UI渲染成HTML字符串`，
-        * 然后将这个字符串作为服务器的响应直接发送给客户端、节省在浏览器渲染的时间
-    * `避免重排（回流Reflow）和重绘(Repaint)`
-        * 重排会影响重绘，重绘不会影响重排
-            * 重排操作（大小、位置、布局、元素本身、字体、overflow、offsetHeight等）
-        * 使用虚拟DOM - React、Vue, 在数据变化时，只更新需要更新的部分，减少DOM操作
-        * CSS放在`head`中 
-            * 在渲染页面前，先加载并应用CSS
-            * 避免重排，页面闪烁，避免了“无样式闪烁”
-        * JS放`body`后 
-            * 避免阻塞渲染，如果将 JavaScript 放在 <head> 中，浏览器会在执行 JavaScript 之前停止渲染页面，直到脚本加载和执行完成。
-            * 确保DOM可用，在 <body> 底部加载 JavaScript 确保脚本执行时，DOM 元素已经完全加载和可用
-        * 异步加载非核心资源：`defer`或`async`属性
-            * defer 属性指示浏览器在文档解析完成后再执行脚本，脚本文件异步加载，按照顺序加载
-            * async 属性指示浏览器在下载完脚本后立即执行脚本，但脚本的执行顺序不确定 （`Google facebook`）
-            * 加载那些对初始页面渲染不是必须的脚本，确保核心内容能够尽快显示出来，而这些脚本的加载和执行不会影响页面的主要内容
-* javascript执行阶段
-    * 避免`频繁`的DOM操作
-        * `事件节流(防抖截流)`
-        * 批量修改样式：使用`classList`或`CSSOM`
-        * 使用 innerHTML 一次性插入多个元素
-        * `虚拟滚动`：使用虚拟滚动技术，只渲染可见区域的DOM元素，减少DOM操作，提高性能
-        * 事件代理
-            * 减少事件处理器数量：只需一个事件处理器即可管理多个子元素的事件。
-            * 动态元素支持：对动态添加或删除的子元素自动适用，无需额外设置事件监听器。
-    * `Web Workers - Partytown`
-        * 提供一种在后台线程中运行 JavaScript 代码的机制，避免在主线程中执行耗时的任务，从而不阻塞用户界面的操作
-    * `Service Workers 离线缓存 - Workbox`： 浏览器把`缓存管理`开放一层接口给开发者 （淘宝首页
-            网易新闻 wap 文章页
-            百度的 Lavas
-            fullstory ... ）
-        * 现代的离线缓存机制，可以缓存大量静态资源，提高页面加载速度。
-        * 网络不稳定甚至断网的环境下，也能瞬间加载并展现
-        * 可以操作本地缓存，如 CacheStorage，IndexedDB 
-        * 能接受服务器推送的离线消息
-        * 快速响应，具有平滑的过渡动画及用户操作的反馈
-        * PWA（Progressive Web Apps）： Web App Manifest，Web Push，Service Worker 和 Cache Api 
-        * `改写默认行为`： 浏览器默认在刷新时，会对所有资源都重新发起请求，即使缓存还是有效期内，而使用了SW，就可以改写这个行为，直接返回缓存
-        * `缓存和更新并存`： 要让网页离线使用，就需要整站使用长缓存，包括HTML。而HTML使用了长缓存，就无法及时更新（浏览器没有开放接口直接删除某个html缓存）。而使用SW就可以，每次先使用缓存部分，然后再发起SW js的请求，这个请求我们可以实施变更，修改HTML版本，重新缓存一份。那么用户下次打开就可以看到新版本了。
-        * `最优的版本控制`： HTML中记录所有js css的文件名（HASH），然后按需发起请求。每个资源都长缓存
-        * `额外缓存`：HTTP缓存空间有限，容易被冲掉。虽然部分浏览器实现SW的存储也有淘汰机制，但多一层缓存，命中的概率就要更高了。 
-        * `离线处理`： 当监测到离线，可以做特殊处理，返回离线的提示
-        * `预加载资源`： 类似prefetch标签
-        * `前置处理`： 例如校验html/JS是否被运营商劫持？js文件到了UI进程执行后，就无法删除恶意代码，而在SW中，我们可以当作文本一样，轻松解决。当然，在HTTPS环境下出现劫持的概率是极低的。
+| 原因 | 说明 | 解决 |
+|------|------|------|
+| JS 阻塞 | 同步 JS 阻塞 HTML 解析和渲染 | `defer` / `async` / 放 body 底部 |
+| CSS 阻塞 | CSSOM 未构建完成，渲染被阻塞 | CSS 放 head、关键 CSS 内联 |
+| 资源过大 | JS/CSS/图片体积大，下载慢 | 压缩、Tree-shaking、图片优化 |
+| 网络延迟 | 服务器远、DNS 慢、TCP 握手 | CDN、HTTP/2、预连接 |
+| 首屏渲染复杂 | DOM 层级深、组件多 | SSR、骨架屏、懒加载 |
 
-    * 尽早执行操作`DOMContentLoaded`，监听 DOMContentLoaded 事件比 window.onload 更早触发，能更好地兼容一些浏览器和异步资源加载的场景。 （动态内容加载）
+---
 
-* `用户体验-渐进式渲染`：
-    * `内容分块加载`：将页面内容分为不同的块，优先加载并渲染重要块，次要内容在后台加载。
-        * 单页应用（SPA）：通过逐步渲染组件，减少用户等待时间，改善交互体验。
-        * 组件懒加载React.lazy、Suspense
-        * Webpack 支持使用 ES6 的 import() 语法来动态加载模块。这种方式在需要时才会加载对应的模块，而不是在初始加载时加载所有内容。
-    * `骨架屏`：在内容加载时显示简单的占位符（如灰色块），随着内容的加载替换为实际内容。
-        * 编写一个JavaScript脚本来操作DOM。
-        * 使用Puppeteer启动一个无头浏览器实例。
-        * 脚本遍历可见区域的DOM节点，识别出需要显示骨架屏的区域。
-        * 对于每个符合条件的区域，脚本会生成一个颜色块或其他形式的骨架内容。
-        * Puppeteer将这些骨架内容渲染到页面上，形成骨架屏。
-    * `Lazy Loading`：延迟加载非关键资源，如下方图片、视频，只有在用户滚动到这些资源时才加载。
-        * 渐进式加载：使用渐进式 JPEG 或 LQIP 技术，实现图片逐步清晰加载。
-        * `渐进式 JPEG` 是一种图像编码技术，使得图像可以逐步显示，从粗略到清晰
-            * 它的原理是在 JPEG 文件中`保存多个图像的版本`，每个版本具有不同的细节级别。
-            * 使用图像处理软件`Photoshop`保存图像时，选择`“渐进式”选项`
-            * 浏览器下载图像数据时，会先显示模糊的粗略版本，然后逐渐提高图像质量。
-        * `LQIP`（Low Quality Image Placeholder）：使用低分辨率的图像占位符，逐渐替换为清晰的高分辨率图像。
-            * loading="lazy"：使用`HTML5`的`lazyload`属性，在图片进入可视区域时才加载图片。
-            * 使用图像处理软件`Photoshop`将高分辨率图像模糊处理，并将其保存为`低质量图像（通常为缩小版）`
-            ```javascript
-                document.addEventListener('DOMContentLoaded', function() {
-                    const lazyLoadInstance = new LazyLoad({
-                        elements_selector: ".lazyload"
-                    });
-                }); // 初始 HTML 文档被完全加载和解析完成后触发
-            ```
-    * `CSS 动画和过渡` （GPU加速、transform、opacity）
-        * GPU 加速 的关键在于能够减少 CPU 的负担，并利用 GPU 强大的并行处理能力来处理图形和动画任务
-    * 骨架屏
+## 三、资源加载优化
+
+### 3.1 压缩体积
+
+| 手段 | 说明 |
+|------|------|
+| **Gzip / Brotli** | 服务端开启压缩，体积减少 60-80% |
+| **Tree-shaking** | 打包时去除未引用代码（ES Module） |
+| **代码分割** | `import()` 动态导入，按需加载 |
+| **CSS 压缩** | 原子 CSS（TailwindCSS）、cssnano |
+| **图片压缩** | WebP/AVIF 格式、TinyPNG、控制在 200KB 以下 |
+
+### 3.2 图片优化
+
+| 策略 | 说明 |
+|------|------|
+| 格式选择 | 照片用 JPEG，透明用 PNG，图标用 SVG，通用用 WebP |
+| 懒加载 | `loading="lazy"` 或 IntersectionObserver |
+| 响应式 | `srcset` + `sizes` 按设备提供合适尺寸 |
+| 占位符 | LQIP（低质量模糊图）防止布局抖动 |
+| CSS Sprite | 多个小图标合并为一张雪碧图，减少请求数 |
+
+### 3.3 减少请求
+
+| 策略 | 说明 |
+|------|------|
+| **强缓存** | `Cache-Control: max-age=31536000`，资源不过期不请求 |
+| **协商缓存** | `ETag` / `If-Modified-Since`，过期后询问服务器 |
+| **合并请求** | 小文件合并、内联关键 CSS/JS |
+| **Keep-Alive** | 长连接复用 TCP，减少握手开销 |
+
+### 3.4 加速网络
+
+| 策略 | 说明 |
+|------|------|
+| **CDN** | 就近分发静态资源 |
+| **HTTP/2** | 多路复用、头部压缩、服务器推送 |
+| **预连接** | `<link rel="preconnect">` 提前建立连接 |
+| **预加载** | `<link rel="preload">` 提前加载关键资源 |
+| **DNS 预解析** | `<link rel="dns-prefetch">` |
+
+---
+
+## 四、渲染优化
+
+### 4.1 关键渲染路径
+
+```
+HTML → DOM
+              → Render Tree → Layout → Paint → Composite
+CSS  → CSSOM
+```
+
+**优化策略：**
+- CSS 放 `<head>`：提前构建 CSSOM，避免无样式闪烁（FOUC）
+- JS 放 `<body>` 底部或用 `defer`：避免阻塞 DOM 解析
+- 关键 CSS 内联：首屏样式直接写在 HTML 中
+
+### 4.2 defer vs async
+
+| 属性 | 下载 | 执行时机 | 顺序 | 适用 |
+|------|------|---------|------|------|
+| 无 | 阻塞 | 立即 | 顺序 | 核心脚本 |
+| `defer` | 异步 | DOM 解析后、DCL 前 | 保证顺序 | 依赖 DOM 的脚本 |
+| `async` | 异步 | 下载完立即执行 | 不保证顺序 | 独立脚本（统计、广告） |
+
+### 4.3 避免重排（Reflow）和重绘（Repaint）
+
+| 概念 | 触发 | 代价 |
+|------|------|------|
+| **重排** | 改变大小、位置、布局、DOM 结构 | 高（重新计算布局） |
+| **重绘** | 改变颜色、背景、阴影（不影响布局） | 中 |
+
+> 重排必然导致重绘，重绘不一定导致重排。
+
+**优化手段：**
+- 批量修改样式：用 `classList` 替代逐条 `style.xxx =`
+- 读写分离：避免交替读取 `offsetHeight` 和写入样式
+- 脱离文档流：`position: absolute/fixed` 减少影响范围
+- `transform` + `opacity` 动画：触发 GPU 合成层，不走重排重绘
+- 虚拟 DOM：React/Vue 批量 diff 后一次更新
+
+### 4.4 SSR（服务端渲染）
+
+- 服务端直接返回 HTML 字符串，浏览器直接渲染，不需要等 JS 下载执行
+- 利于 SEO（搜索引擎可抓取完整内容）
+- 缩短 FCP，但 TTI 可能不变（hydration 需要时间）
+
+---
+
+## 五、JS 执行优化
+
+### 5.1 减少 DOM 操作
+
+| 策略 | 说明 |
+|------|------|
+| 事件委托 | 父元素统一监听，减少事件处理器数量 |
+| 虚拟滚动 | 只渲染可见区域 DOM，长列表必备 |
+| `innerHTML` | 批量插入比逐个 `appendChild` 快 |
+| `DocumentFragment` | 离屏操作，完成后一次插入 |
+
+### 5.2 防抖与节流
+
+```javascript
+// 防抖：停止触发后才执行（搜索输入）
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// 节流：固定间隔执行一次（滚动、resize）
+function throttle(fn, interval) {
+  let last = 0;
+  return (...args) => {
+    const now = Date.now();
+    if (now - last >= interval) {
+      last = now;
+      fn(...args);
+    }
+  };
+}
+```
+
+### 5.3 Web Worker
+
+- 在后台线程执行 CPU 密集任务，不阻塞主线程
+- 无法访问 DOM，通过 `postMessage` 通信
+- **Partytown**：将第三方脚本（统计、广告）移到 Worker 执行
+
+### 5.4 Service Worker
+
+| 能力 | 说明 |
+|------|------|
+| 离线缓存 | 拦截请求，返回 CacheStorage 中的缓存 |
+| 缓存策略 | Cache First / Network First / Stale While Revalidate |
+| 预缓存 | 安装时缓存关键资源 |
+| 后台同步 | 离线操作上线后自动同步 |
+| 推送通知 | 接收服务器推送 |
+
+> **Workbox**：Google 出品的 Service Worker 工具库，简化缓存策略配置。
+
+**Service Worker vs HTTP 缓存：**
+- SW 缓存不受浏览器缓存淘汰策略影响
+- SW 可以改写默认行为（刷新时强制走缓存）
+- SW 支持离线访问和版本控制
+
+---
+
+## 六、用户体验优化
+
+### 6.1 骨架屏
+
+- 页面加载时显示灰色占位块，内容加载后替换
+- 减少用户感知的白屏时间
+- 实现：手写 CSS 占位 / Puppeteer 自动生成 / 框架插件
+
+### 6.2 渐进式加载
+
+| 策略 | 说明 |
+|------|------|
+| 组件懒加载 | `React.lazy` + `Suspense`、Vue `defineAsyncComponent` |
+| 路由懒加载 | `import()` 动态导入路由组件 |
+| 渐进式 JPEG | 图片从模糊逐步变清晰 |
+| LQIP | 先显示低质量模糊图，再替换高清图 |
+
+### 6.3 GPU 加速
+
+```css
+/* 触发 GPU 合成层，避免重排重绘 */
+.animated {
+  transform: translateZ(0);  /* 或 will-change: transform */
+  opacity: 1;
+  transition: transform 0.3s, opacity 0.3s;
+}
+```
+
+> 只对 `transform` 和 `opacity` 做动画，其他属性（width、height、top）会触发重排。
+
+---
+
+## 七、面试高频总结
+
+### Q: 说说前端性能优化的方案？
+
+**按阶段回答：**
+
+1. **资源加载阶段：**
+   - 压缩（Gzip、Tree-shaking、图片 WebP）
+   - 缓存（强缓存 + 协商缓存）
+   - CDN + HTTP/2
+   - 预连接、预加载
+
+2. **解析渲染阶段：**
+   - CSS 放 head，JS 放 body 底部或 defer
+   - 关键 CSS 内联
+   - SSR 服务端渲染
+   - 避免重排重绘
+
+3. **JS 执行阶段：**
+   - 减少 DOM 操作（事件委托、虚拟滚动）
+   - 防抖节流
+   - Web Worker 处理耗时任务
+   - Service Worker 离线缓存
+
+4. **用户体验：**
+   - 骨架屏
+   - 懒加载（图片、组件、路由）
+   - GPU 加速动画
