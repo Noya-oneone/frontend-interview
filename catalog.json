@@ -349,8 +349,6 @@
     "8-Shopify App 开发.md",
     "8-小程序 Taro.md",
     "9-SSR Next.md",
-    "langchain & Autogen.md",
-    "webview调试.md",
-    "线上监控与排查工具.md"
+    "langchain & Autogen.md"
   ]
 }
