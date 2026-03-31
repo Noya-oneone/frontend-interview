@@ -1,8 +1,4 @@
 {
-  "0-调试与监控": [
-    "webview调试.md",
-    "线上监控与排查工具.md"
-  ],
   "0-HTML": [
     "* Web Worker.md",
     "0-HTML5新特性 & 语义化.md",
@@ -349,6 +345,11 @@
     "8-Shopify App 开发.md",
     "8-小程序 Taro.md",
     "9-SSR Next.md",
-    "langchain & Autogen.md"
+    "langchain & Autogen.md",
+    "开源项目.md"
+  ],
+  "0-调试与监控": [
+    "webview调试.md",
+    "线上监控与排查工具.md"
   ]
 }
