@@ -190,6 +190,17 @@
   "8-Node": [
     "6-Node&BFF.md"
   ],
+  "9-AI": [
+    "0-LLM 基础概念.md",
+    "1-Prompt Engineering（提示词工程）.md",
+    "2-RAG & Embedding（检索增强生成）.md",
+    "3-Function Calling & MCP.md",
+    "4-流式渲染（SSE & Fetch Streaming）.md",
+    "5-AI Agent（智能体）.md",
+    "6-前端 AI 工程化（Vercel AI SDK & LangChain.js）.md",
+    "7-端侧 AI（WebLLM & Transformers.js & WebGPU）.md",
+    "8-AI 编程工具与工程实践（Copilot & Claude Code & Cursor）.md"
+  ],
   "数据结构": [
     "1-链表List.md",
     "2-栈Stack（数组Array push pop）.md",
