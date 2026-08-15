@@ -1,6 +1,6 @@
 # Frontend Interview - 前端八股文知识库
 
-翻书式阅读的前端面试知识库，**332 篇文档**覆盖前端面试核心知识点。
+翻书式阅读的前端面试知识库，**350 篇文档**覆盖前端面试核心知识点。
 
 ## 在线访问
 
@@ -28,7 +28,7 @@
 | 🟢 Node.js | 1 | BFF 架构 |
 | 🤖 AI | 9 | LLM 基础、Prompt、RAG、MCP、流式渲染、Agent、端侧 AI |
 | 🧱 数据结构 | 9 | 链表、栈、队列、Hash、堆、树、图 |
-| 🧮 算法 | 93 | 排序、查找、DFS/BFS、动态规划、Diff 算法、LeetCode |
+| 🧮 算法 | 111 | 排序、查找、DFS/BFS、动态规划、Diff 算法、LeetCode |
 | 🏛️ 设计模式 | 19 | 创建型、结构型、行为型 |
 | 🎯 面向对象 | 1 | OOP 原则 |
 | 📌 综合专题 | 26 | 性能优化、安全、SEO、微前端、SSR、登录鉴权 |
@@ -50,7 +50,7 @@ open index.html
 
 ```
 frontend-interview/
-├── docs/                      # 332 篇 Markdown 文档
+├── docs/                      # 350 篇 Markdown 文档
 │   ├── 0-调试与监控/           # WebView 调试、线上监控
 │   ├── 0-HTML/                # HTML5、语义化、Canvas/SVG
 │   ├── 1-CSS/                 # 布局、动画、响应式
