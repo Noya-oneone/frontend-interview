@@ -21,19 +21,24 @@
     --paper: #f7f5f0;          /* 正文纸面（冷象牙） */
     --ink: #201d18;            /* 墨色 */
     --ink-soft: #57524a;
-    --ink-faint: #97918a;
+    --ink-faint: #7d776f;
     --line: #e6e2d8;           /* 发丝线 */
     --line-strong: #cec8b9;
-    --accent: #8a6b41;         /* 古铜鎏金 */
-    --accent-deep: #6e5330;
+    --accent: #7a5c34;         /* 古铜鎏金 */
+    --accent-deep: #644a2b;
     --accent-tint: rgba(138, 107, 65, 0.08);
     --gold: #c3a36c;           /* 暗底上的鎏金 */
     --seal-red: #7d2a21;       /* 印章朱（仅品牌印使用） */
     --code-bg: #22201b;
-    --code-text: #e9e4d8;
+    --code-text: #ddd6c7;      /* 代码正文：比纯白柔和，久读不刺眼 */
+    --code-key: #c9a271;       /* 关键字：暖金 */
+    --code-str: #a3b088;       /* 字符串：苔绿 */
+    --code-num: #cfa2a2;       /* 数值：淡赭 */
+    --code-fn: #e2d7b8;        /* 函数名 */
+    --code-com: #7b756a;       /* 注释：明确弱化 */
     --side-text: #eae5d9;      /* 深墨侧栏 */
-    --side-soft: rgba(234, 229, 217, 0.7);
-    --side-faint: rgba(234, 229, 217, 0.36);
+    --side-soft: rgba(234, 229, 217, 0.78);
+    --side-faint: rgba(234, 229, 217, 0.58);
     --side-line: rgba(234, 229, 217, 0.08);
     --side-line-strong: rgba(234, 229, 217, 0.15);
     --serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
@@ -185,7 +190,7 @@
     margin-left: auto;
     font-family: var(--serif-num);
     font-size: 0.76rem;
-    color: var(--side-faint);
+    color: rgba(234, 229, 217, 0.4); /* 计数为次要信息，弱于分类名 */
     font-weight: 400;
   }
 
@@ -221,7 +226,7 @@
     padding: 13px 22px;
     font-size: 0.66rem;
     letter-spacing: 0.14em;
-    color: var(--side-faint);
+    color: rgba(234, 229, 217, 0.42);
     border-top: 1px solid var(--side-line);
   }
 
@@ -393,8 +398,15 @@
     padding: 0;
     color: var(--code-text);
     font-size: 0.82rem;
-    line-height: 1.75;
+    line-height: 1.8;
   }
+
+  /* 语法高亮：低饱和暖调，避免霓虹色刺眼 */
+  .doc pre .tk-com { color: var(--code-com); font-style: italic; }
+  .doc pre .tk-str { color: var(--code-str); }
+  .doc pre .tk-num { color: var(--code-num); }
+  .doc pre .tk-key { color: var(--code-key); }
+  .doc pre .tk-fn  { color: var(--code-fn); }
 
   .doc table {
     border-collapse: collapse;
@@ -717,6 +729,48 @@
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
+  // ===== 轻量语法高亮 =====
+  const KEYWORDS = new Set([
+    "const","let","var","function","return","if","else","for","while","do","switch","case","break",
+    "continue","new","class","extends","super","this","typeof","instanceof","in","of","try","catch",
+    "finally","throw","async","await","yield","import","from","export","default","delete","void",
+    "null","undefined","true","false","interface","type","enum","implements","public","private",
+    "protected","readonly","static"
+  ]);
+
+  // 输入是 marked 转义后的 HTML 文本。单趟扫描：注释/字符串优先整体消费，
+  // 其余片段再着色，确保生成的标签不会被后续规则重复匹配。
+  const TOKENIZER = new RegExp([
+    "(\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)",              // 1 注释
+    "(&#39;[\\s\\S]*?&#39;|&quot;[\\s\\S]*?&quot;|`[\\s\\S]*?`)", // 2 字符串
+    "(\\b\\d+(?:\\.\\d+)?\\b)",                            // 3 数值
+    "([A-Za-z_$][\\w$]*)"                                  // 4 标识符（关键字/函数名）
+  ].join("|"), "g");
+
+  function highlight(escaped) {
+    return escaped.replace(TOKENIZER, (m, com, str, num, ident, offset, full) => {
+      if (com) return `<span class="tk-com">${com}</span>`;
+      if (str) return `<span class="tk-str">${str}</span>`;
+      if (num) return `<span class="tk-num">${num}</span>`;
+      if (ident) {
+        if (KEYWORDS.has(ident)) return `<span class="tk-key">${ident}</span>`;
+        // 后接左括号则视为函数调用/定义
+        if (/^\s*\(/.test(full.slice(offset + ident.length))) {
+          return `<span class="tk-fn">${ident}</span>`;
+        }
+      }
+      return m;
+    });
+  }
+
+  // 对渲染后的代码块逐个着色（跳过 mermaid 等非代码场景）
+  function highlightAll(root) {
+    root.querySelectorAll("pre > code").forEach(el => {
+      if (el.className.includes("mermaid")) return;
+      el.innerHTML = highlight(el.innerHTML);
+    });
+  }
+
   // ===== 渲染侧边栏 =====
   function renderNav(data, filter = "") {
     const nav = document.getElementById("nav");
@@ -781,6 +835,7 @@
       const docTitle = parts.length > 1 ? parts.slice(1).join(" / ") : parts[0];
 
       contentEl.innerHTML = `<article class="doc"><div class="doc-eyebrow">${esc(catName)}</div>${marked.parse(md)}</article>`;
+      highlightAll(contentEl);
       contentEl.scrollTop = 0;
       breadcrumb.innerHTML = `<span>${esc(catName)}</span> / ${esc(docTitle)}`;
 

@@ -75,6 +75,6 @@ frontend-interview/
 ## 技术实现
 
 - 纯 HTML/CSS/JS 单文件应用，零构建
-- 唯一外部依赖：[marked.js](https://marked.js.org/)（CDN）
-- CSS Grid + backdrop-filter 暗色主题
+- 外部依赖：[marked.js](https://marked.js.org/) 负责 Markdown 渲染（CDN，带 unpkg 兜底源）
+- 墨色 / 冷象牙 / 古铜鎏金配色，自实现轻量代码高亮
 - URL hash 路由 + 键盘快捷键
