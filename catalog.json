@@ -188,6 +188,11 @@
     "9-全面屏适配方案.md"
   ],
   "8-Node": [
+    "0-Node 运行机制与事件循环.md",
+    "1-模块系统（CommonJS & ESM）.md",
+    "2-Stream 与 Buffer.md",
+    "3-多进程与集群（cluster & child_process）.md",
+    "4-性能优化与内存泄漏排查.md",
     "6-Node&BFF.md"
   ],
   "9-AI": [
