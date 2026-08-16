@@ -765,6 +765,16 @@
   // 文件名以编号开头（0-、1.2- 等）视为作者编排的学习顺序，应排在无编号文档之前
   const numbered = name => /^\d+(\.\d+)*[-\s.]/.test(name);
 
+  // 编号前缀只用于排序，不展示 —— 序号本身有重复和断档，显示出来反而干扰扫读。
+  // 排序仍按编号进行（见 sortFiles），此处只影响 label。
+  const NUM_PREFIX = /^\d+(\.\d+)*\s*[-–—.、]\s*/;
+  function displayName(file) {
+    return file.replace(/\.md$/, "")
+      .split("/")
+      .map(seg => seg.replace(NUM_PREFIX, "").trim() || seg) // 去掉后为空则保留原段
+      .join(" / ");
+  }
+
   // 文档排序：先按所在子目录分组（保持 0-数组/、1-字符串/ 等聚在一起），组内再按自然序
   function sortFiles(files) {
     return [...files].sort((a, b) => {
@@ -931,8 +941,9 @@
         <div class="cat-items ${filter ? 'open' : ''}">`;
       for (const file of filtered) {
         const path = cat === "_root" ? file : `${cat}/${file}`;
-        const label = file.replace(/\.md$/, "");
-        html += `<a href="#${encodeURIComponent(path)}" onclick="loadDoc(decodeURIComponent('${encodeURIComponent(path)}')); return false;" title="${esc(label)}">${esc(label)}</a>`;
+        const label = displayName(file);
+        // title 保留含编号的原名，便于核对文件
+        html += `<a href="#${encodeURIComponent(path)}" onclick="loadDoc(decodeURIComponent('${encodeURIComponent(path)}')); return false;" title="${esc(file.replace(/\.md$/, ""))}">${esc(label)}</a>`;
       }
       html += `</div></div>`;
     }
@@ -971,7 +982,7 @@
 
       const parts = path.replace(/\.md$/, "").split("/");
       const catName = parts.length > 1 ? (CAT_NAMES[parts[0]] || parts[0]) : "综合专题";
-      const docTitle = parts.length > 1 ? parts.slice(1).join(" / ") : parts[0];
+      const docTitle = displayName(parts.length > 1 ? parts.slice(1).join("/") : parts[0]);
 
       contentEl.innerHTML = `<article class="doc"><div class="doc-eyebrow">${esc(catName)}</div>${marked.parse(md)}</article>`;
       highlightAll(contentEl);
