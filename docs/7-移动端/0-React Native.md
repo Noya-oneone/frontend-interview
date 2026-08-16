@@ -46,7 +46,7 @@
     * 与参数结合使用
      i.e：View shopping item and feature=recommendations and route = productCard（首页feed商品卡片曝光）
     * APP - mParticle - Amplitude (用户可根据用户id查询自己所做的每一步操作，延迟5s左右，类似于目前的阿里云日志平台,可搭建数据看板)
-    * APP - mParticle - Lakehouse ( Klarna数据池，所有的数据都存在这里)
+    * APP - mParticle - Lakehouse (数据湖，所有埋点数据最终归档在这里)
 
 
 Flipper 调试工具链
@@ -64,9 +64,9 @@ react-native init RNApp
 
 ## 混合开发
 
-### Klarna App
+### 大型 Hybrid App 的目录分层
 
-* Bin (klarna cli 执行文件)
+* Bin (脚手架 cli 执行文件)
 * git-hooks(git 提交规范)
 * pipeline （管道，Jenkins执行文件）
 * services （服务层）
