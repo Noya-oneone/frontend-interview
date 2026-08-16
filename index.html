@@ -988,6 +988,17 @@
 
   .load-error .reason { color: var(--ink-faint); font-size: 0.84em; }
 
+  /* 空文档占位：正文为空时的兜底，语气比 .load-error 弱
+     —— 这不是错误，只是内容还没写，所以不用描边和主色底 */
+  .doc-empty {
+    margin-top: 18px;
+    padding: 14px 18px;
+    border-left: 2px solid var(--line-strong);
+    color: var(--ink-faint);
+    font-size: 0.9rem;
+    line-height: 1.75;
+  }
+
   /* ===== Welcome（编辑部式 hero） ===== */
   .welcome {
     max-width: 620px;
@@ -1927,7 +1938,14 @@
       const catName = parts.length > 1 ? (CAT_NAMES[parts[0]] || parts[0]) : "综合专题";
       const docTitle = displayName(parts.length > 1 ? parts.slice(1).join("/") : parts[0]);
 
-      contentEl.innerHTML = `<article class="doc"><div class="doc-eyebrow">${esc(catName)}</div>${marked.parse(md)}</article>`;
+      // 空文档（或只有空白字符）不会进 catch，直接渲染会得到一片白板，看起来像功能坏了。
+      // 这里补上标题和占位说明，让「还没写」和「加载失败」在视觉上可区分。
+      const body = md.trim()
+        ? marked.parse(md)
+        : `<h1>${esc(docTitle)}</h1>
+           <div class="doc-empty">本篇尚未撰写，内容待补充。</div>`;
+
+      contentEl.innerHTML = `<article class="doc"><div class="doc-eyebrow">${esc(catName)}</div>${body}</article>`;
       highlightAll(contentEl);
       contentEl.scrollTop = 0;
       breadcrumb.innerHTML = `<span>${esc(catName)}</span> / ${esc(docTitle)}`;
