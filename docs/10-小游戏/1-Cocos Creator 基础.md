@@ -125,3 +125,11 @@ assetManager.loadRemote<ImageAsset>(url, (err, img) => { /* ... */ });
 | `requestAnimationFrame` | `update(dt)` |
 | 打包器管依赖 | 编辑器管资源引用（uuid + meta） |
 | 内存交给 GC | 资源需手动管引用计数 |
+
+## 拓展阅读
+
+- [Cocos Creator 官方手册](https://docs.cocos.com/creator/3.8/manual/zh/)
+- [生命周期回调](https://docs.cocos.com/creator/3.8/manual/zh/scripting/life-cycle-callbacks.html)
+- [多分辨率适配方案](https://docs.cocos.com/creator/3.8/manual/zh/ui-system/components/engine/multi-resolution.html)
+- [动态加载资源](https://docs.cocos.com/creator/3.8/manual/zh/asset/dynamic-load-resources.html)
+- [Cocos Creator API 文档](https://docs.cocos.com/creator/3.8/api/zh/)

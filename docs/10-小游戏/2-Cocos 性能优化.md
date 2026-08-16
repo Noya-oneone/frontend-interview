@@ -132,3 +132,10 @@ assetManager.loadBundle('game', (err, bundle) => {
 * **Chrome DevTools**：Cocos 预览走浏览器，可以直接用 Performance 火焰图定位 JS 热点
 
 排查顺序：**先看 FPS 掉在哪一帧 → 看是 CPU 还是 GPU 瓶颈 → CPU 看 JS 火焰图，GPU 看 DrawCall 和填充率**。
+
+## 拓展阅读
+
+- [UI 合批规则](https://docs.cocos.com/creator/3.8/manual/zh/ui-system/components/engine/ui-batch.html)
+- [自动图集（Auto Atlas）](https://docs.cocos.com/creator/3.8/manual/zh/asset/atlas.html)
+- [纹理压缩](https://docs.cocos.com/creator/3.8/manual/zh/asset/compress-texture.html)
+- [资源释放与引用计数](https://docs.cocos.com/creator/3.8/manual/zh/asset/release-manager.html)
