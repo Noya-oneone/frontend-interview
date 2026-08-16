@@ -18,29 +18,33 @@
 
   :root {
     --sidebar-w: 300px;
-    --paper: #f7f5f0;          /* 正文纸面（冷象牙） */
-    --ink: #201d18;            /* 墨色 */
-    --ink-soft: #57524a;
+    /* 明暗跨度刻意收窄：侧栏与正文亮度差约 55%，避免视线来回扫时瞳孔反复调节 */
+    --paper: #eceae2;          /* 正文纸面（暖米，压暗以减弱眩光） */
+    --ink: #33302a;            /* 墨色（非纯黑，降低反差） */
+    --ink-soft: #5f5a51;
     --ink-faint: #7d776f;
-    --line: #e6e2d8;           /* 发丝线 */
-    --line-strong: #cec8b9;
+    --line: #d9d5ca;           /* 发丝线（须比纸面深，否则不可见） */
+    --line-strong: #c2bcac;
     --accent: #7a5c34;         /* 古铜鎏金 */
     --accent-deep: #644a2b;
     --accent-tint: rgba(138, 107, 65, 0.08);
-    --gold: #c3a36c;           /* 暗底上的鎏金 */
-    --seal-red: #7d2a21;       /* 印章朱（仅品牌印使用） */
-    --code-bg: #22201b;
-    --code-text: #ddd6c7;      /* 代码正文：比纯白柔和，久读不刺眼 */
-    --code-key: #c9a271;       /* 关键字：暖金 */
-    --code-str: #a3b088;       /* 字符串：苔绿 */
-    --code-num: #cfa2a2;       /* 数值：淡赭 */
-    --code-fn: #e2d7b8;        /* 函数名 */
-    --code-com: #7b756a;       /* 注释：明确弱化 */
-    --side-text: #eae5d9;      /* 深墨侧栏 */
-    --side-soft: #d8d2c4;
-    --side-faint: #b8b1a2;      /* 实色而非半透明：暗底上半透明文字会发灰 */
-    --side-line: rgba(234, 229, 217, 0.08);
-    --side-line-strong: rgba(234, 229, 217, 0.15);
+    --gold: #e6c489;           /* 中调侧栏上的鎏金 */
+    --seal-red: #8f3226;       /* 印章朱（仅品牌印使用） */
+    /* 代码块随全站转为浅色：暗块在浅底页面上会成为唯一刺眼元素 */
+    --code-bg: #e7e4da;
+    --code-text: #35322b;
+    --code-key: #8a5a2b;       /* 关键字：赭褐 */
+    --code-str: #4f6b45;       /* 字符串：苔绿 */
+    --code-num: #97503f;       /* 数值：砖红 */
+    --code-fn: #55483a;        /* 函数名 */
+    --code-com: #8a857a;       /* 注释：明确弱化 */
+    /* 侧栏与正文同为纸面色系：不存在明暗切换，视线来回扫时瞳孔无需调节 */
+    --side-bg: #e4e1d7;        /* 比正文纸面略深一档，靠色阶而非明暗对比区分 */
+    --side-text: #33302a;
+    --side-soft: #4c473f;
+    --side-faint: #5f5a51;
+    --side-line: #d0ccc0;
+    --side-line-strong: #bdb8aa;
     --serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
     --serif-num: "EB Garamond", "Times New Roman", "Songti SC", serif;
     --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -63,7 +67,8 @@
   .sidebar {
     width: var(--sidebar-w);
     min-width: var(--sidebar-w);
-    background: linear-gradient(180deg, #1d1a15 0%, #14120d 100%);
+    background: var(--side-bg);
+    border-right: 1px solid var(--side-line-strong);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -134,19 +139,19 @@
     padding: 9px 12px;
     border: 1px solid var(--side-line-strong);
     border-radius: 3px;
-    background: rgba(255, 255, 255, 0.045);
+    background: #f4f2eb;
     color: var(--side-text);
     font-size: 0.85rem;
     font-family: var(--sans);
     outline: none;
-    transition: border-color 0.2s, background 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
-  .sidebar-header input::placeholder { color: var(--side-faint); }
+  .sidebar-header input::placeholder { color: #8a8479; }
 
   .sidebar-header input:focus {
-    border-color: rgba(195, 163, 108, 0.45);
-    background: rgba(255, 255, 255, 0.07);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-tint);
   }
 
   .sidebar-nav {
@@ -156,7 +161,7 @@
   }
 
   .sidebar-nav::-webkit-scrollbar { width: 4px; }
-  .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 2px; }
+  .sidebar-nav::-webkit-scrollbar-thumb { background: var(--side-line-strong); border-radius: 2px; }
 
   .cat-group { margin-bottom: 1px; }
 
@@ -173,7 +178,7 @@
     transition: background 0.15s, color 0.15s;
   }
 
-  .cat-title:hover { background: rgba(255, 255, 255, 0.04); color: var(--side-text); }
+  .cat-title:hover { background: rgba(0, 0, 0, 0.04); color: var(--side-text); }
 
   .cat-title .idx {
     font-family: var(--serif-num);
@@ -183,14 +188,14 @@
     transition: color 0.2s;
   }
 
-  .cat-title.open { color: #f5f1e6; }
-  .cat-title.open .idx { color: var(--gold); }
+  .cat-title.open { color: var(--accent-deep); font-weight: 600; }
+  .cat-title.open .idx { color: var(--accent); }
 
   .cat-title .count {
     margin-left: auto;
     font-family: var(--serif-num);
     font-size: 0.76rem;
-    color: rgba(234, 229, 217, 0.4); /* 计数为次要信息，弱于分类名 */
+    color: #8a8479; /* 计数为次要信息，弱于分类名 */
     font-weight: 400;
   }
 
@@ -212,21 +217,22 @@
   }
 
   .cat-items a:hover {
-    color: #fbf8f0;
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--side-text);
+    background: rgba(0, 0, 0, 0.04);
   }
 
   .cat-items a.active {
-    color: #faf6eb;
-    background: linear-gradient(90deg, rgba(195, 163, 108, 0.16), rgba(195, 163, 108, 0));
-    border-left-color: var(--gold);
+    color: var(--accent-deep);
+    font-weight: 600;
+    background: linear-gradient(90deg, rgba(122, 92, 52, 0.13), rgba(122, 92, 52, 0));
+    border-left-color: var(--accent);
   }
 
   .stats {
     padding: 13px 22px;
     font-size: 0.66rem;
     letter-spacing: 0.14em;
-    color: rgba(234, 229, 217, 0.42);
+    color: #8a8479;
     border-top: 1px solid var(--side-line);
   }
 
@@ -387,11 +393,11 @@
     border-radius: 6px;
     overflow-x: auto;
     margin: 16px 0;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 2px 10px rgba(38, 33, 27, 0.12);
+    border: 1px solid var(--line-strong);
   }
 
   .doc pre::-webkit-scrollbar { height: 5px; }
-  .doc pre::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+  .doc pre::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
 
   .doc pre code {
     background: none;
