@@ -1753,6 +1753,19 @@
       }
     });
 
+    // Esc：脑图是覆盖整个阅读区的浮层，用户会本能地按 Esc 退出。
+    // 有上层可回则先逐层返回，已在顶层再关闭整个脑图。
+    document.addEventListener("keydown", e => {
+      if (e.key !== "Escape") return;
+      if (!document.getElementById("mindmap").classList.contains("show")) return;
+      if (MM.path.length) {
+        MM.path = MM.path.slice(0, -1);
+        renderMindmap(true);
+      } else {
+        toggleMindmap(false);
+      }
+    });
+
     // 滚轮缩放
     svg.addEventListener("wheel", e => {
       e.preventDefault();
@@ -1804,7 +1817,9 @@
     svg.addEventListener("pointerup", endDrag);
     svg.addEventListener("pointercancel", endDrag);
 
-    // 拖动结束后浏览器仍会补发 click，此时不应触发节点动作
+    // 拖动结束后浏览器仍会补发一次 click，需吞掉，否则松手即触发下钻。
+    // moved 在 pointerdown 时清零，确保它只影响紧随其后的那次 click，
+    // 不会因残留状态误吞掉后续的正常点击。
     svg.addEventListener("click", e => {
       if (moved) { e.stopPropagation(); moved = false; }
     }, true); // 捕获阶段，先于下方的节点 click 处理
