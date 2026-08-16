@@ -759,13 +759,36 @@
   ];
 
   // 按 CAT_ORDER 重排目录；未登记的分类排在最后
+  // 自然序比较：数字段按数值比，避免字典序把 "2-" 排到 "12-" 之后
+  const naturalCmp = new Intl.Collator("zh-Hans", { numeric: true, sensitivity: "base" }).compare;
+
+  // 文件名以编号开头（0-、1.2- 等）视为作者编排的学习顺序，应排在无编号文档之前
+  const numbered = name => /^\d+(\.\d+)*[-\s.]/.test(name);
+
+  // 文档排序：先按所在子目录分组（保持 0-数组/、1-字符串/ 等聚在一起），组内再按自然序
+  function sortFiles(files) {
+    return [...files].sort((a, b) => {
+      const da = a.includes("/") ? a.slice(0, a.lastIndexOf("/")) : "";
+      const db = b.includes("/") ? b.slice(0, b.lastIndexOf("/")) : "";
+      if (da !== db) {
+        if (da === "") return -1; // 根层级文档排在子目录之前
+        if (db === "") return 1;
+        return naturalCmp(da, db);
+      }
+      const na = a.slice(da ? da.length + 1 : 0);
+      const nb = b.slice(db ? db.length + 1 : 0);
+      if (numbered(na) !== numbered(nb)) return numbered(na) ? -1 : 1;
+      return naturalCmp(na, nb);
+    });
+  }
+
   function sortCatalog(raw) {
     const ordered = {};
     for (const key of CAT_ORDER) {
-      if (raw[key]) ordered[key] = raw[key];
+      if (raw[key]) ordered[key] = sortFiles(raw[key]);
     }
     for (const key of Object.keys(raw)) {
-      if (!(key in ordered)) ordered[key] = raw[key];
+      if (!(key in ordered)) ordered[key] = sortFiles(raw[key]);
     }
     return ordered;
   }
