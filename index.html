@@ -3,120 +3,229 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23e94560'/%3E%3Cstop offset='100%25' stop-color='%230f3460'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='22' text-anchor='middle' font-family='-apple-system,Helvetica,sans-serif' font-size='11' font-weight='700' fill='rgba(255,255,255,0.8)'%3EFE%3C/text%3E%3Ctext x='32' y='38' text-anchor='middle' font-family='monospace' font-size='16' font-weight='700' fill='%23fff'%3E%26lt;/%26gt;%3C/text%3E%3Ctext x='32' y='54' text-anchor='middle' font-family='-apple-system,Helvetica,sans-serif' font-size='9' font-weight='600' fill='rgba(255,255,255,0.6)'%3E八股文%3C/text%3E%3C/svg%3E" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%237d2a21'/%3E%3Crect x='6' y='6' width='52' height='52' rx='8' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='2'/%3E%3Ctext x='32' y='29' text-anchor='middle' font-family='Songti SC,serif' font-size='20' font-weight='900' fill='%23fff'%3E八%3C/text%3E%3Ctext x='32' y='52' text-anchor='middle' font-family='Songti SC,serif' font-size='20' font-weight='900' fill='%23fff'%3E股%3C/text%3E%3C/svg%3E" />
 <title>前端八股文知识库</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  // jsDelivr 不可达时（离线 / 网络受限）回退到 unpkg，避免阅读器整体失效
+  window.marked || document.write('<script src="https://unpkg.com/marked/marked.min.js"><\/script>');
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
     --sidebar-w: 300px;
-    --bg: #1a1a2e;
-    --sidebar-bg: #16213e;
-    --card-bg: #0f3460;
-    --accent: #e94560;
-    --text: #eee;
-    --text-dim: #aab;
-    --border: #233;
+    --paper: #f7f5f0;          /* 正文纸面（冷象牙） */
+    --ink: #201d18;            /* 墨色 */
+    --ink-soft: #57524a;
+    --ink-faint: #97918a;
+    --line: #e6e2d8;           /* 发丝线 */
+    --line-strong: #cec8b9;
+    --accent: #8a6b41;         /* 古铜鎏金 */
+    --accent-deep: #6e5330;
+    --accent-tint: rgba(138, 107, 65, 0.08);
+    --gold: #c3a36c;           /* 暗底上的鎏金 */
+    --seal-red: #7d2a21;       /* 印章朱（仅品牌印使用） */
+    --code-bg: #22201b;
+    --code-text: #e9e4d8;
+    --side-text: #eae5d9;      /* 深墨侧栏 */
+    --side-soft: rgba(234, 229, 217, 0.7);
+    --side-faint: rgba(234, 229, 217, 0.36);
+    --side-line: rgba(234, 229, 217, 0.08);
+    --side-line-strong: rgba(234, 229, 217, 0.15);
+    --serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+    --serif-num: "EB Garamond", "Times New Roman", "Songti SC", serif;
+    --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --mono: "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
   }
 
+  ::selection { background: rgba(138, 107, 65, 0.18); }
+
   body {
-    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
     display: flex;
     height: 100vh;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* ===== Sidebar ===== */
+  /* ===== Sidebar（深墨） ===== */
   .sidebar {
     width: var(--sidebar-w);
     min-width: var(--sidebar-w);
-    background: var(--sidebar-bg);
+    background: linear-gradient(180deg, #1d1a15 0%, #14120d 100%);
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--border);
     overflow: hidden;
   }
 
   .sidebar-header {
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
+    padding: 26px 22px 20px;
+    border-bottom: 1px solid var(--side-line);
   }
 
-  .sidebar-header h1 {
-    font-size: 1.2rem;
-    margin-bottom: 10px;
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin-bottom: 22px;
+  }
+
+  .seal {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    background: var(--seal-red);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 14px rgba(125, 42, 33, 0.35);
+    position: relative;
+  }
+
+  .seal::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+  }
+
+  .seal span {
+    font-family: var(--serif);
+    font-weight: 900;
+    font-size: 14px;
+    line-height: 1.15;
+    color: #fdf9f0;
+    writing-mode: vertical-rl;
+    letter-spacing: 1px;
+  }
+
+  .brand-text h1 {
+    font-family: var(--serif);
+    font-weight: 900;
+    font-size: 1.16rem;
+    letter-spacing: 0.08em;
+    color: var(--side-text);
+  }
+
+  .brand-text p {
+    margin-top: 4px;
+    font-family: var(--serif-num);
+    font-size: 0.6rem;
+    letter-spacing: 0.42em;
+    color: var(--side-faint);
+    text-transform: uppercase;
   }
 
   .sidebar-header input {
     width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 0.9rem;
+    padding: 9px 12px;
+    border: 1px solid var(--side-line-strong);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.045);
+    color: var(--side-text);
+    font-size: 0.85rem;
+    font-family: var(--sans);
     outline: none;
+    transition: border-color 0.2s, background 0.2s;
   }
 
-  .sidebar-header input:focus { border-color: var(--accent); }
+  .sidebar-header input::placeholder { color: var(--side-faint); }
+
+  .sidebar-header input:focus {
+    border-color: rgba(195, 163, 108, 0.45);
+    background: rgba(255, 255, 255, 0.07);
+  }
 
   .sidebar-nav {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 0;
+    padding: 14px 0 18px;
   }
 
   .sidebar-nav::-webkit-scrollbar { width: 4px; }
-  .sidebar-nav::-webkit-scrollbar-thumb { background: #335; border-radius: 2px; }
+  .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 2px; }
 
-  .cat-group { margin-bottom: 4px; }
+  .cat-group { margin-bottom: 1px; }
 
   .cat-title {
     display: flex;
     align-items: center;
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--accent);
+    padding: 9px 22px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--side-soft);
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s;
+    letter-spacing: 0.05em;
+    transition: background 0.15s, color 0.15s;
   }
 
-  .cat-title:hover { background: rgba(255,255,255,0.05); }
-  .cat-title .arrow { margin-right: 6px; font-size: 0.7rem; transition: transform 0.2s; }
-  .cat-title.open .arrow { transform: rotate(90deg); }
-  .cat-title .count { margin-left: auto; font-size: 0.75rem; color: var(--text-dim); font-weight: 400; }
+  .cat-title:hover { background: rgba(255, 255, 255, 0.04); color: var(--side-text); }
 
-  .cat-items { display: none; }
+  .cat-title .idx {
+    font-family: var(--serif-num);
+    font-size: 0.74rem;
+    width: 27px;
+    color: var(--side-faint);
+    transition: color 0.2s;
+  }
+
+  .cat-title.open { color: #f5f1e6; }
+  .cat-title.open .idx { color: var(--gold); }
+
+  .cat-title .count {
+    margin-left: auto;
+    font-family: var(--serif-num);
+    font-size: 0.76rem;
+    color: var(--side-faint);
+    font-weight: 400;
+  }
+
+  .cat-items { display: none; padding: 2px 0 8px; }
   .cat-items.open { display: block; }
 
   .cat-items a {
     display: block;
-    padding: 6px 16px 6px 32px;
-    color: var(--text-dim);
+    padding: 5px 18px 5px 49px;
+    color: var(--side-faint);
     text-decoration: none;
-    font-size: 0.82rem;
-    transition: all 0.15s;
+    font-size: 0.79rem;
+    line-height: 1.55;
+    border-left: 2px solid transparent;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .cat-items a:hover { color: #fff; background: rgba(255,255,255,0.05); }
-  .cat-items a.active { color: #fff; background: var(--accent); border-radius: 4px; margin: 1px 8px; padding-left: 24px; }
-
-  .stats {
-    padding: 10px 16px;
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    border-top: 1px solid var(--border);
+  .cat-items a:hover {
+    color: var(--side-text);
+    background: rgba(255, 255, 255, 0.035);
   }
 
-  /* ===== Main Content ===== */
+  .cat-items a.active {
+    color: #faf6eb;
+    background: linear-gradient(90deg, rgba(195, 163, 108, 0.16), rgba(195, 163, 108, 0));
+    border-left-color: var(--gold);
+  }
+
+  .stats {
+    padding: 13px 22px;
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    color: var(--side-faint);
+    border-top: 1px solid var(--side-line);
+  }
+
+  /* ===== Main ===== */
   .main {
     flex: 1;
     display: flex;
@@ -127,111 +236,326 @@
   .topbar {
     display: flex;
     align-items: center;
-    padding: 10px 20px;
-    border-bottom: 1px solid var(--border);
-    gap: 10px;
+    padding: 14px 48px;
+    border-bottom: 1px solid var(--line);
+    gap: 14px;
     flex-shrink: 0;
+    background: var(--paper);
   }
 
-  .topbar .breadcrumb { font-size: 0.85rem; color: var(--text-dim); flex: 1; }
-  .topbar .breadcrumb span { color: var(--accent); }
+  .topbar .breadcrumb {
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    flex: 1;
+    letter-spacing: 0.1em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .topbar .breadcrumb span { color: var(--accent-deep); font-weight: 600; }
 
   .nav-btn {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 6px 14px;
-    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: var(--ink-faint);
+    padding: 6px 4px;
     cursor: pointer;
-    font-size: 0.85rem;
-    transition: background 0.2s;
+    font-size: 0.78rem;
+    font-family: var(--sans);
+    letter-spacing: 0.08em;
+    transition: color 0.18s;
   }
 
-  .nav-btn:hover { background: var(--accent); }
+  .nav-btn:hover:not(:disabled) { color: var(--accent-deep); }
+
   .nav-btn:disabled { opacity: 0.3; cursor: default; }
 
   .content {
     flex: 1;
     overflow-y: auto;
-    padding: 30px 40px 60px;
+    padding: 44px 48px 96px;
   }
 
   .content::-webkit-scrollbar { width: 6px; }
-  .content::-webkit-scrollbar-thumb { background: #335; border-radius: 3px; }
+  .content::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
 
-  /* ===== Markdown 样式 ===== */
-  .content h1 { font-size: 1.8rem; margin: 0 0 20px; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
-  .content h2 { font-size: 1.4rem; margin: 28px 0 12px; color: #f0a; }
-  .content h3 { font-size: 1.15rem; margin: 20px 0 8px; }
-  .content h4 { font-size: 1rem; margin: 16px 0 6px; color: var(--text-dim); }
-  .content p { line-height: 1.8; margin: 8px 0; }
-  .content ul, .content ol { padding-left: 24px; margin: 8px 0; }
-  .content li { line-height: 1.7; margin: 3px 0; }
-  .content a { color: #5af; }
-  .content strong { color: #ff9; }
-  .content em { color: var(--text-dim); }
-  .content img { max-width: 100%; border-radius: 8px; margin: 12px 0; }
+  /* ===== 文档排版 ===== */
+  .doc {
+    max-width: 46rem;
+    margin: 0 auto;
+    animation: fadeUp 0.45s ease both;
+  }
 
-  .content code {
-    background: rgba(255,255,255,0.08);
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .doc-eyebrow {
+    font-size: 0.66rem;
+    letter-spacing: 0.32em;
+    color: var(--accent);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .doc-eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .doc h1 {
+    font-family: var(--serif);
+    font-weight: 900;
+    font-size: 2rem;
+    line-height: 1.35;
+    color: var(--ink);
+    margin: 0 0 28px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+    letter-spacing: 0.01em;
+  }
+
+  .doc h1 ~ h1 { margin-top: 44px; border-bottom: none; padding-bottom: 0; }
+
+  .doc h2 {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 1.35rem;
+    margin: 40px 0 14px;
+    color: var(--ink);
+    padding-left: 14px;
+    border-left: 3px solid var(--accent);
+    line-height: 1.45;
+  }
+
+  .doc h3 {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 28px 0 10px;
+    color: var(--ink);
+  }
+
+  .doc h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 20px 0 8px;
+    color: var(--ink-soft);
+  }
+
+  .doc p { line-height: 1.95; margin: 10px 0; font-size: 0.95rem; }
+  .doc ul, .doc ol { padding-left: 26px; margin: 10px 0; }
+  .doc li { line-height: 1.85; margin: 4px 0; font-size: 0.95rem; }
+
+  .doc a {
+    color: var(--accent-deep);
+    text-decoration: underline;
+    text-decoration-color: rgba(138, 107, 65, 0.4);
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.15s;
+  }
+
+  .doc a:hover { text-decoration-color: var(--accent); }
+
+  .doc strong { color: var(--accent-deep); font-weight: 650; }
+  .doc em { color: var(--ink-soft); }
+  .doc img { max-width: 100%; border-radius: 4px; margin: 14px 0; border: 1px solid var(--line); }
+
+  .doc code {
+    background: rgba(38, 33, 27, 0.065);
     padding: 2px 6px;
-    border-radius: 4px;
-    font-family: "Fira Code", "SF Mono", monospace;
-    font-size: 0.88em;
-    color: #f8c;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.85em;
+    color: var(--ink);
   }
 
-  .content pre {
-    background: #0d1117;
-    padding: 16px;
-    border-radius: 8px;
+  .doc pre {
+    background: var(--code-bg);
+    padding: 18px 20px;
+    border-radius: 6px;
     overflow-x: auto;
-    margin: 12px 0;
-    border: 1px solid #222;
+    margin: 16px 0;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 2px 10px rgba(38, 33, 27, 0.12);
   }
 
-  .content pre code {
+  .doc pre::-webkit-scrollbar { height: 5px; }
+  .doc pre::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+
+  .doc pre code {
     background: none;
     padding: 0;
-    color: #c9d1d9;
+    color: var(--code-text);
+    font-size: 0.82rem;
+    line-height: 1.75;
+  }
+
+  .doc table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 18px 0;
+    font-size: 0.87rem;
+  }
+
+  .doc th {
+    text-align: left;
+    padding: 9px 14px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    border-bottom: 2px solid var(--ink);
+    background: none;
+  }
+
+  .doc td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+    line-height: 1.7;
+    vertical-align: top;
+  }
+
+  .doc tr:hover td { background: rgba(38, 33, 27, 0.028); }
+
+  .doc blockquote {
+    border-left: 2px solid var(--accent);
+    padding: 10px 18px;
+    margin: 16px 0;
+    background: var(--accent-tint);
+    color: var(--ink-soft);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .doc blockquote p { margin: 4px 0; }
+
+  .doc hr {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 36px 0;
+  }
+
+  .load-error {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 14px 18px;
+    border: 1px solid rgba(138, 107, 65, 0.35);
+    border-radius: 4px;
+    background: var(--accent-tint);
+    color: var(--accent-deep);
+    font-size: 0.9rem;
+  }
+
+  /* ===== Welcome（编辑部式 hero） ===== */
+  .welcome {
+    max-width: 620px;
+    margin: 10vh auto 0;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .welcome .eyebrow {
+    font-family: var(--serif-num);
+    font-size: 0.72rem;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+
+  .welcome h1 {
+    font-family: var(--serif);
+    font-weight: 900;
+    font-size: 3rem;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+  }
+
+  .welcome .rule {
+    width: 54px;
+    height: 2px;
+    background: var(--accent);
+    margin: 32px 0;
+  }
+
+  .hero-stats { display: flex; align-items: flex-end; gap: 52px; }
+
+  .hero-stats em {
+    font-style: normal;
+    font-family: var(--serif-num);
+    font-weight: 500;
+    font-size: 2.9rem;
+    line-height: 1;
+    color: var(--ink);
+    display: block;
+  }
+
+  .hero-stats span {
+    display: block;
+    margin-top: 9px;
+    font-size: 0.68rem;
+    letter-spacing: 0.26em;
+    color: var(--ink-faint);
+  }
+
+  .welcome .index {
+    margin-top: 54px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 48px;
+  }
+
+  .index-item {
+    display: flex;
+    align-items: baseline;
+    padding: 9px 0;
+    font-size: 0.83rem;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .index-item:hover { color: var(--accent-deep); }
+
+  .index-item .leader {
+    flex: 1;
+    border-bottom: 1px dotted var(--line-strong);
+    margin: 0 10px;
+    transform: translateY(-3px);
+  }
+
+  .index-item .cnt {
+    font-family: var(--serif-num);
     font-size: 0.85rem;
-    line-height: 1.6;
+    color: var(--ink-faint);
   }
 
-  .content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-  .content th, .content td { border: 1px solid #334; padding: 8px 12px; text-align: left; font-size: 0.88rem; }
-  .content th { background: var(--card-bg); color: var(--accent); }
-  .content tr:hover { background: rgba(255,255,255,0.03); }
-
-  .content blockquote {
-    border-left: 3px solid var(--accent);
-    padding: 8px 16px;
-    margin: 12px 0;
-    background: rgba(233,69,96,0.08);
-    border-radius: 0 6px 6px 0;
+  .welcome .hint {
+    margin-top: 54px;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    color: var(--ink-faint);
   }
-
-  .content hr { border: none; border-top: 1px solid #334; margin: 24px 0; }
-
-  /* Welcome */
-  .welcome { text-align: center; margin-top: 15vh; }
-  .welcome h1 { border: none; font-size: 2.2rem; }
-  .welcome p { color: var(--text-dim); font-size: 1.1rem; margin: 12px 0; }
-  .welcome .tag { display: inline-block; background: var(--card-bg); padding: 4px 12px; border-radius: 20px; margin: 4px; font-size: 0.8rem; }
 
   /* ===== Mobile ===== */
   .menu-toggle {
     display: none;
     position: fixed;
-    top: 10px; left: 10px;
+    top: 12px; left: 12px;
     z-index: 200;
-    background: var(--accent);
+    background: var(--ink);
     border: none;
-    color: #fff;
+    color: var(--paper);
     width: 40px; height: 40px;
-    border-radius: 8px;
-    font-size: 1.3rem;
+    border-radius: 6px;
+    font-size: 1.15rem;
     cursor: pointer;
+    box-shadow: 0 2px 10px rgba(38, 33, 27, 0.25);
   }
 
   @media (max-width: 768px) {
@@ -242,10 +566,18 @@
       height: 100%;
       z-index: 100;
       transition: left 0.3s;
+      box-shadow: 4px 0 24px rgba(38, 33, 27, 0.18);
     }
     .sidebar.show { left: 0; }
     .menu-toggle { display: block; }
-    .content { padding: 20px 16px 60px; }
+    .topbar { padding: 12px 16px 12px 62px; }
+    .content { padding: 28px 20px 80px; }
+    .welcome { margin-top: 6vh; }
+    .welcome h1 { font-size: 2rem; }
+    .welcome .index { grid-template-columns: 1fr; }
+    .hero-stats { gap: 36px; }
+    .hero-stats em { font-size: 2.2rem; }
+    .doc table { display: block; overflow-x: auto; }
   }
 </style>
 </head>
@@ -255,8 +587,14 @@
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <h1>📚 前端八股文</h1>
-    <input type="text" id="search" placeholder="搜索文档...">
+    <div class="brand">
+      <div class="seal"><span>八股</span></div>
+      <div class="brand-text">
+        <h1>前端八股文</h1>
+        <p>FRONTEND</p>
+      </div>
+    </div>
+    <input type="text" id="search" placeholder="搜索文档…">
   </div>
   <nav class="sidebar-nav" id="nav"></nav>
   <div class="stats" id="stats"></div>
@@ -270,10 +608,15 @@
   </div>
   <div class="content" id="content">
     <div class="welcome">
-      <h1>📖 前端八股文知识库</h1>
-      <p>共 <span id="totalCount">0</span> 篇文档，覆盖前端面试核心知识点</p>
-      <p>点击左侧目录开始翻阅，或使用搜索快速定位</p>
-      <div id="tags"></div>
+      <p class="eyebrow">Frontend Interview Handbook</p>
+      <h1>前端八股文知识库</h1>
+      <div class="rule"></div>
+      <div class="hero-stats">
+        <div><em id="totalCount">0</em><span>篇文档</span></div>
+        <div><em id="catCount">0</em><span>个分类</span></div>
+      </div>
+      <div class="index" id="tags"></div>
+      <p class="hint">点击目录开始翻阅 · 支持 ← / → 键翻页</p>
     </div>
   </div>
 </main>
@@ -299,12 +642,27 @@
     "_root": "综合专题"
   };
 
-  const CAT_ICONS = {
-    "0-调试与监控": "🔍", "0-HTML": "🏗️", "1-CSS": "🎨", "2-JS": "⚡", "3-HTTP": "🌐",
-    "4-VUE": "💚", "5-React": "⚛️", "6-CI&工程化": "🔧", "7-移动端": "📱",
-    "8-Node": "🟢", "9-AI": "🤖", "数据结构": "🧱", "算法": "🧮", "设计模式": "🏛️",
-    "面向对象": "🎯", "_root": "📌"
-  };
+  // 分类展示顺序：基础 → 框架 → 服务端/工程 → 平台 → AI → 算法体系 → 综合
+  const CAT_ORDER = [
+    "0-HTML", "1-CSS", "2-JS", "3-HTTP",
+    "4-VUE", "5-React", "8-Node",
+    "6-CI&工程化", "7-移动端", "0-调试与监控",
+    "9-AI",
+    "数据结构", "算法", "设计模式", "面向对象",
+    "_root"
+  ];
+
+  // 按 CAT_ORDER 重排目录；未登记的分类排在最后
+  function sortCatalog(raw) {
+    const ordered = {};
+    for (const key of CAT_ORDER) {
+      if (raw[key]) ordered[key] = raw[key];
+    }
+    for (const key of Object.keys(raw)) {
+      if (!(key in ordered)) ordered[key] = raw[key];
+    }
+    return ordered;
+  }
 
   // 内联目录数据（兼容 file:// 协议直接打开）
   const INLINE_CATALOG = {"0-HTML":["* Web Worker.md","0-HTML5新特性 & 语义化.md","1-BFC、盒模型（flex&grid）.md","1.1-Flex.md","1.2-Grid.md","2-垂直居中的多种方案.md","2-行内元素 VS 块级元素 VS Void 元素.md","3-data-属性.md","4-获得宽高的方式.md","<!DOCTYPE>.md","<a>.md","<canvas> & <svg>.md","<iframe>.md","<img> & Base64.md","<label>.md","<meta>.md","<script>.md"],"1-CSS":["* GPU加速.md","0-样式选择器优先级.md","1-清除浮动.md","1-边距重叠.md","10-less & scss.md","2-文本溢出.md","3-元素隐藏.md","3-响应式布局 & 自适应布局.md","4-动画（transition & animation）.md","5-src VS href.md","6-link VS @import.md","7-vmax & vmin.md","8-flex-grow & flex-shrink.md","9-Reset VS Normalize .md"],"2-JS":["0-原型与原型链区别.md","1-作用域.md","1.1-浏览器的垃圾回收机制.md","1.1-闭包.md","1.2-内存监控.md","1.md","12-Promise & Async & SetTimeout.md","12.1-try-catch.md","12.2-事件循环机制.md","15-Node进程和线程.md","15.1-Node关系型数据库VS非关系型数据库.md","19-mouseout & mouseleave.md","2-let、const、 var.md","20-onload & DOMContentLoaded .md","21-加载时间线.md","22-事件流Click 时间绑定.md","23-如何将js代码抽象成AST.md","3-数据类型 .md","3.0.1-Set(数组去重).md","3.0.2-Map(数组元素出现次数).md","3.1-检测数据类型.md","3.2-Array.md","3.2.0-Array.from().md","3.2.0-Array.of().md","3.2.1-sort.md","3.2.2-splice.md","3.3-String.md","3.4-深拷贝 & 浅拷贝 - 循环引用.md","4-表达式.md","5-函数function & this.md","5.1-bind call apply .md","5.2-防抖函数 & 节流函数.md","6-ES6（ECMAScript 2015）.md","7-CommonJS VS ES6.md","8-Cookie & storage & indexDB .md"],"3-HTTP":["1-状态码.md","2-协商缓存 & 强缓存.md","2.0-刷新强缓存方法.md","3-Header.md","3-跨域问题.md","5- 应用层 HTTP1.0  & HTTP2.0 & HTTP3.0.md","5.1-Http & HTTPS.md","5.1-应用层GRPC协议.md","6- 传输层 TCP & UDP & QUIC.md","6-网络协议.md","6.1-TCP3次握手4次挥手 & 输入url 浏览器处理过程.md","7-RestFul & GraphQL.md","7.1-Get & Post.md","Cookie 和 Session.md","Data Flow.md","OSI7层模型.md","URI、URL 和 URN.md","URL 长度问题.md","丢包408.md","签名过程.md"],"4-VUE":["* 数据劫持 & 虚拟DOM.md","0-compositionAPI.md","0-双向数据绑定.md","0.1-Vue的数据劫持源码.md","0.1-vue2.0 VS vue3.0.md","0.2-ref 和 reactive区别.md","0.2-vue 依赖收集.md","0.3-setup.md","0.3-vue 渲染的整个过程.md","1.0-template.md","1.1-computed.md","1.2-nextTick.md","1.2-watch VS watchEffect.md","1.3-Vue 过渡与动画.md","1.4-Vue 修饰符.md","2-Components.md","3-指令.md","3.1-v-for & v-if.md","4-生命周期钩子.md","5-Mixin&Plugin.md","7-VueRouter.md","7.1-keep-alive.md","7.2-activeClass.md","8-Vuex.md","9-VueCLI.md","Vue Resource.md","key.md"],"5-React":["0-Fiber.md","1-useEffect.md","12-Redux(React Native).md","2-useMemo.md","3-副作用.md","4-更新整个组件.md","5-key值的重要性.md","Hooks.md","Redux.md","class.md","react & react-dom.md","react18.md","setState.md","useHover.md","生命周期.md","高阶组件.md"],"6-CI&工程化":["0-Webpack & Vite.md","0.1-webpack构建流程.md","0.2-webpack 生命周期.md","0.3-webpack tapable.md","0.3.0-Loader 输入什么输出什么.md","0.3.1-Proxy.md","0.3.2-垫片Shimming.md","0.3.3-webpack5.0.md","0.4-webpack 缓存策略.md","0.5-webpack 提高构建速度的方式.md","1-npm-license.md","1-如何封装一个组件？.md","2-npm - login.md","2-npm - searchAndTable.md","2-npm - spm 埋点.md","2-npm - starblink-cli.md","3-测试.md","3.0-Jest-单元测试.md","3.1-Jest-快照测试.md","3.2-Puppeteer-自动化测试.md","3.3-Storybook-视觉测试.md","4-Typescript.md","5-CI & CD.md","怎么设计一个沙盒.md","浏览器兼容性.md","监控-性能.md","监控-数据用户行为监控-mparticle.md","监控-错误-sentry.md"],"7-移动端":["* Service Workers & PWA应用 离线缓存.md","0-React Native.md","1-JS Bridge.md","1-唤端.md","10-LoginForm.md","11-FlatList.md","13-SSO单点登录.md","14-BFF安全性.md","2-IOS.md","3-Android.md","4-webview.md","5-RN & flutter & Native.md","6-300ms延迟.md","8-性能优化.md","9-全面屏适配方案.md"],"8-Node":["6-Node&BFF.md"],"9-AI":["0-LLM 基础概念.md","1-Prompt Engineering（提示词工程）.md","2-RAG & Embedding（检索增强生成）.md","3-Function Calling & MCP.md","4-流式渲染（SSE & Fetch Streaming）.md","5-AI Agent（智能体）.md","6-前端 AI 工程化（Vercel AI SDK & LangChain.js）.md","7-端侧 AI（WebLLM & Transformers.js & WebGPU）.md","8-AI 编程工具与工程实践（Copilot & Claude Code & Cursor）.md"],"数据结构":["1-链表List.md","2-栈Stack（数组Array push pop）.md","3-队列Queue (数组Array shift unshift).md","4-Hash表 (对象{} & Map) .md","5-堆Heap.md","6-树Tree.md","7-图Graph.md","8-对比.md","readme.md"],"算法":["0-数组/1-两数之和（hash）.md","0-数组/10-合并区间.md","0-数组/11-最长上升子序列.md","0-数组/12-最大子数组和(LC53).md","0-数组/13-移动零(LC283).md","0-数组/14-买卖股票的最佳时机(LC121).md","0-数组/15-接雨水(LC42).md","0-数组/16-螺旋矩阵(LC54).md","0-数组/17-滑动窗口最大值(LC239).md","0-数组/2-三数之和（双指针）.md","0-数组/3-删除有序数组中的重复项.md","0-数组/4-打乱顺序（Fisher-Yates）.md","0-数组/5-岛屿数量(DFS).md","0-数组/6-最小数字 (3个元素).md","0-数组/7-有效的括号.md","0-数组/8-合并两个有序数组.md","0-数组/9-数组中第k个最大元素.md","0-时间复杂度&空间复杂度.md","1-字符串/1-两数相加.md","1-字符串/2-最大重复字符串.md","1-字符串/3-最长不重复字符串.md","1-字符串/4-最长回文串.md","1-字符串/5-字符串相加·大数相加(LC415).md","1-字符串/51-最长回文子串.md","1-字符串/6-字符串解码(LC394).md","1-字符串/7-版本号比较(LC165).md","1-字符串/8-最长公共前缀(LC14).md","1-排序算法.md","2-查找算法.md","2-树&图/0-二叉树遍历.md","2-树&图/1-二叉搜索树转换为累加树.md","2-树&图/2-二叉树层序遍历(LC102).md","2-树&图/3-二叉树的最大深度(LC104).md","3-搜索算法（DFS&BFS）.md","3-递归、其他/1-斐波那契数.md","3-递归、其他/2-递归-frogJump-NC68.青蛙跳台阶.md","3-递归、其他/3-爬楼梯(LC70).md","3-递归、其他/4-全排列(LC46).md","3-递归、其他/5-LRU缓存(LC146).md","3-递归、其他/6-反转链表(LC206).md","3-递归、其他/7-合并两个有序链表(LC21).md","3-递归、其他/8-环形链表(LC141).md","4-DP算法-动态规划.md","5-颜色转化.md","6-AST.md","7-Diff算法（React&VUE）.md","leetcode/-1-sring-convertString-进制转换.md","leetcode/-10-HJ101.输入整型数组和排序标识.md","leetcode/-11-*HJ106.字符串逆序.md","leetcode/-12-HJ8.合并表记录.md","leetcode/-13-*HJ14.字符串排序.md","leetcode/-14-HJ27.查找兄弟单词.md","leetcode/-15-*NC37.合并区间.md","leetcode/-16-*HJ68.成绩排序.md","leetcode/-17-NC52.括号序列.md","leetcode/-18-*括号的最大嵌套深度.md","leetcode/-19-leetcode 77.组合.md","leetcode/-20-*leetcode 674.最长连续递增序列.md","leetcode/-21-最长回文串.md","leetcode/-21-最长回文子串.md","leetcode/-22-最小覆盖子串.md","leetcode/-3-arr-readline-明明的随机数.md","leetcode/-4-string-Set-countUniqueChars字符个数统计.md","leetcode/-6-string-command-正则-calculateCoordinatesHJ17.坐标移动.md","leetcode/-7-string-password-HJ20.密码验证合格程序.md","leetcode/-8-*HJ23.删除字符串中出现次数最少的字符.md","leetcode/-9-*HJ33.整数与IP地址间的转换.md","leetcode/0.md","leetcode/1-连续子区间和.md","leetcode/10-员工工号问题.md","leetcode/11-身高体重排序.md","leetcode/12-整数对最小和.md","leetcode/13-最大消费金额.md","leetcode/14-磁盘容量排序.md","leetcode/15-查找字符串中相同字符连续出现的最大次数.md","leetcode/16-给定 n 和 k，返回第 k 个排列.md","leetcode/17-求数组中最大 N 个与最小 N 个数的和，需要对数组进行去重.md","leetcode/18-分苹果.md","leetcode/19-单词接龙.md","leetcode/2-arr-去重排序.md","leetcode/20-报数游戏.md","leetcode/21-太阳能板最大面积.md","leetcode/22-篮球比赛.md","leetcode/23-两数之和绝对值最小.md","leetcode/24-按索引范围翻转文章片段.md","leetcode/25-最长连续子序列.md","leetcode/26-考勤问题.md","leetcode/27-字符串的去重和排序.md","leetcode/28-找车位-最大距离.md","leetcode/29-开心消消乐.md","leetcode/3-找终点(最小步骤数).md","leetcode/30-判断字符串子序列.md","leetcode/31-组成最大数.md","leetcode/32-字符串筛选排序.md","leetcode/33-停车场车辆统计.md","leetcode/34-小朋友高矮排列.md","leetcode/35-GPU 执行时长.md","leetcode/36-素勾股数.md","leetcode/37-取字符串的所有整数最小和.md","leetcode/38-找出第一次相同且连续的子串.md","leetcode/39-众数和中位数.md","leetcode/4-运维日志排序.md","leetcode/40-玩牌高手.md","leetcode/6-arr-找到好朋友.md","leetcode/7-出租车计费.md","leetcode/8-最小交换次数.md","leetcode/9-求解连续数列.md","leetcode/findDuplicate.md","leetcode/singleNumber.md","leetcode/sortColors.md","leetcode/机试.md"],"设计模式":["readme.md","创建型/单例模式(Store).md","创建型/原型模式.md","创建型/工厂模式 (Circle).md","结构型/享元模式（模具试装）.md","结构型/代理模式(Proxy).md","结构型/组合模式（文件系统）.md","结构型/装饰者模式(Mixins-Coffe).md","结构型/适配者模式（兼容）.md","结构型/门面模式（JS Bridge）.md","行为型/中介者模式.md","行为型/发布订阅者模式.md","行为型/命令模式.md","行为型/模板模式.md","行为型/状态模式.md","行为型/策略模式(Form).md","行为型/职责链模式.md","行为型/观察者模式(Vue).md","行为型/迭代器模式(For).md"],"面向对象":["自定义类.md"],"_root":["0-项目介绍.md","1-Safe（安全）.md","10-行业动态.md","2-Performance（性能优化）.md","2.1-Perfomance 参数.md","2.2-Perfomance资源加载顺序.md","2.2-Performance-CSS.md","2.2-Performance-GZIP.md","2.3-Performance-Web Worker.md","3-SEO（搜索排名）.md","5-Case Websocket.md","5-Case 音视频处理.md","5-Case （项目案例）.md","5-Case1怎么开发一封前端高质量邮件信息.md","5-Case2虚拟列表实现原理.md","5-Case3断点续传问题.md","5-Case代码高亮.md","5-Case富文本Quill.md","6-登陆逻辑 & 后端鉴权.md","7-微前端Qiankun.md","8-Google 插件.md","8-Shopify App 开发.md","8-小程序 Taro.md","9-SSR Next.md","langchain & Autogen.md","开源项目.md"],"0-调试与监控":["webview调试.md","线上监控与排查工具.md"]};
@@ -322,6 +680,7 @@
       // file:// 协议下 fetch 会失败，使用内联数据
       catalog = INLINE_CATALOG;
     }
+    catalog = sortCatalog(catalog);
 
     // 构建扁平列表（用于前后翻页）
     flatList = [];
@@ -334,15 +693,17 @@
 
     renderNav(catalog);
     document.getElementById("totalCount").innerText = flatList.length;
-    document.getElementById("stats").innerText = `共 ${Object.keys(catalog).length} 个分类，${flatList.length} 篇文档`;
+    document.getElementById("catCount").innerText = Object.keys(catalog).length;
+    document.getElementById("stats").innerText = `${Object.keys(catalog).length} 个分类 · ${flatList.length} 篇文档`;
 
-    // 渲染标签
+    // 渲染首页分类索引（点击展开侧栏对应分类）
     const tags = document.getElementById("tags");
-    for (const [key, name] of Object.entries(CAT_NAMES)) {
-      if (catalog[key]) {
-        tags.innerHTML += `<span class="tag">${CAT_ICONS[key] || ""} ${name} (${catalog[key].length})</span> `;
-      }
+    let tagsHtml = "";
+    for (const key of Object.keys(catalog)) {
+      const name = CAT_NAMES[key] || key;
+      tagsHtml += `<div class="index-item" data-cat="${esc(key)}" onclick="openCat(this.dataset.cat)"><span>${esc(name)}</span><span class="leader"></span><span class="cnt">${catalog[key].length}</span></div>`;
     }
+    tags.innerHTML = tagsHtml;
 
     // URL hash 导航
     if (location.hash) {
@@ -360,17 +721,19 @@
   function renderNav(data, filter = "") {
     const nav = document.getElementById("nav");
     let html = "";
+    let idx = 0;
     for (const [cat, files] of Object.entries(data)) {
       const name = CAT_NAMES[cat] || cat;
-      const icon = CAT_ICONS[cat] || "📁";
+      idx += 1; // 序号按完整目录顺序编，过滤时保持稳定
+      const num = String(idx).padStart(2, "0");
       const filtered = filter
         ? files.filter(f => f.toLowerCase().includes(filter))
         : files;
       if (filter && filtered.length === 0) continue;
 
       html += `<div class="cat-group">
-        <div class="cat-title ${filter ? 'open' : ''}" onclick="toggleCat(this)">
-          <span class="arrow">▶</span>${icon} ${esc(name)}<span class="count">${filtered.length}</span>
+        <div class="cat-title ${filter ? 'open' : ''}" data-cat="${esc(cat)}" onclick="toggleCat(this)">
+          <span class="idx">${num}</span>${esc(name)}<span class="count">${filtered.length}</span>
         </div>
         <div class="cat-items ${filter ? 'open' : ''}">`;
       for (const file of filtered) {
@@ -388,6 +751,16 @@
     el.nextElementSibling.classList.toggle("open");
   }
 
+  // 首页索引 → 展开侧栏对应分类
+  function openCat(cat) {
+    const title = document.querySelector(`.cat-title[data-cat="${cat.replace(/"/g, '\\"')}"]`);
+    if (!title) return;
+    title.classList.add("open");
+    title.nextElementSibling.classList.add("open");
+    title.scrollIntoView({ block: "start", behavior: "smooth" });
+    document.getElementById("sidebar").classList.add("show"); // 移动端同时拉出侧栏
+  }
+
   // ===== 加载文档 =====
   async function loadDoc(path) {
     const contentEl = document.getElementById("content");
@@ -398,17 +771,18 @@
       const res = await fetch(`docs/${encodedPath}`);
       if (!res.ok) throw new Error("Not found");
       const md = await res.text();
-      contentEl.innerHTML = marked.parse(md);
-      contentEl.scrollTop = 0;
 
-      // 更新面包屑
-      const parts = path.replace(/\.md$/, "").split("/");
-      if (parts.length > 1) {
-        const catName = CAT_NAMES[parts[0]] || parts[0];
-        breadcrumb.innerHTML = `<span>${esc(catName)}</span> / ${esc(parts.slice(1).join(" / "))}`;
-      } else {
-        breadcrumb.innerHTML = `<span>综合专题</span> / ${esc(parts[0].replace(/\.md$/, ""))}`;
+      if (typeof marked === "undefined") {
+        throw new Error("Markdown 渲染库加载失败，请检查网络后刷新页面");
       }
+
+      const parts = path.replace(/\.md$/, "").split("/");
+      const catName = parts.length > 1 ? (CAT_NAMES[parts[0]] || parts[0]) : "综合专题";
+      const docTitle = parts.length > 1 ? parts.slice(1).join(" / ") : parts[0];
+
+      contentEl.innerHTML = `<article class="doc"><div class="doc-eyebrow">${esc(catName)}</div>${marked.parse(md)}</article>`;
+      contentEl.scrollTop = 0;
+      breadcrumb.innerHTML = `<span>${esc(catName)}</span> / ${esc(docTitle)}`;
 
       // 更新当前索引
       currentIndex = flatList.findIndex(item => item.path === path);
@@ -422,7 +796,7 @@
       document.getElementById("sidebar").classList.remove("show");
 
     } catch (e) {
-      contentEl.innerHTML = `<p style="color:var(--accent)">无法加载文档: ${path}</p>`;
+      contentEl.innerHTML = `<div class="load-error">无法加载文档：${esc(path)}</div>`;
     }
   }
 
