@@ -1,6 +1,6 @@
 # Frontend Interview - 前端八股文知识库
 
-翻书式阅读的前端面试知识库，**350 篇文档**覆盖前端面试核心知识点。
+翻书式阅读的前端面试知识库，**361 篇文档**覆盖前端面试核心知识点。
 
 ## 在线访问
 
@@ -26,7 +26,8 @@
 | ⚛️ React | 16 | Hooks、Fiber、Redux、生命周期、高阶组件、SSR |
 | 🔧 工程化 & CI/CD | 28 | Webpack/Vite、TypeScript、测试、监控、Git |
 | 📱 移动端 | 15 | React Native、JSBridge、WebView、PWA、适配 |
-| 🟢 Node.js | 1 | BFF 架构 |
+| 🎮 小游戏 & Cocos | 6 | Cocos Creator、微信 / 抖音小游戏、分包与包体优化 |
+| 🟢 Node.js | 6 | 事件循环、模块系统、Stream/Buffer、多进程、性能与内存排查、BFF |
 | 🤖 AI | 9 | LLM 基础、Prompt、RAG、MCP、流式渲染、Agent、端侧 AI |
 | 🧱 数据结构 | 9 | 链表、栈、队列、Hash、堆、树、图 |
 | 🧮 算法 | 111 | 排序、查找、DFS/BFS、动态规划、Diff 算法、LeetCode |
@@ -51,7 +52,7 @@ open index.html
 
 ```
 frontend-interview/
-├── docs/                      # 350 篇 Markdown 文档
+├── docs/                      # 361 篇 Markdown 文档
 │   ├── 0-调试与监控/           # WebView 调试、线上监控
 │   ├── 0-HTML/                # HTML5、语义化、Canvas/SVG
 │   ├── 1-CSS/                 # 布局、动画、响应式
