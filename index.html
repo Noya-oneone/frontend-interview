@@ -14,12 +14,15 @@
   window.marked || document.write('<script src="https://unpkg.com/marked/marked.min.js"><\/script>');
 </script>
 <script>
-  // 必须在首次绘制前执行，否则深色用户会先看到一帧白底闪烁
+  // 必须在首次绘制前执行，否则深色用户会先看到一帧白底闪烁。
+  // 主题清单与下方 THEMES 常量保持一致；此处只做校验，避免 localStorage 里的脏值。
   (function () {
+    var LIGHT = ["light", "minimal", "tech", "vintage", "soft"];
+    var DARK = ["midnight", "dark"];
     try {
       var saved = localStorage.getItem("theme");
-      if (saved !== "light" && saved !== "dark") {
-        saved = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      if (LIGHT.indexOf(saved) < 0 && DARK.indexOf(saved) < 0) {
+        saved = matchMedia("(prefers-color-scheme: dark)").matches ? "midnight" : "light";
       }
       document.documentElement.setAttribute("data-theme", saved);
     } catch (e) {
@@ -30,9 +33,21 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* 浅色主题（默认）。
-     配色原则见 CLAUDE.md：侧栏与正文同色系、低反差，避免视线来回扫时瞳孔反复调节。
-     深色主题只覆盖下方这组颜色变量，不改动任何布局与尺寸。 */
+  /* 配色主题共 7 套（5 浅 + 2 深），全部只覆盖同一组颜色变量，不改动任何布局与尺寸。
+     公共原则（见 CLAUDE.md）：
+       1. 侧栏 --side-bg 只与 --paper 差一档，靠色阶而非明暗对比区分；
+       2. 代码块跟随主题，不做成页面上唯一的反色块；
+       3. 正文文字保持 WCAG AA（≥4.5），刻意弱化的次要信息（计数、注释）允许 2.8–4.0；
+       4. 深色主题下文字用暖白而非纯白，避免暗底光晕。
+     每套主题给定的 5 个锚点色（背景 / 正文 / 主色 / 次要文字 / 分割线）为准，
+     其余 token 在同色相族内推导。
+
+     例外：--code-* 这 11 个语法高亮 token 不受"同色相族"约束 —— 高亮的作用
+     就是靠色相区分 token 类别，压成同一色族等于取消高亮。它们改为跨色相取色
+     （紫=关键字、绿=字符串、橙=数值、蓝=函数/属性、红=标签），
+     深色主题下须提亮提饱和，否则在暗底上发浑。 */
+
+  /* 01 素笺 —— 暖米纸面 + 墨褐文字 + 古铜鎏金（默认，原配色） */
   :root, :root[data-theme="light"] {
     --paper: #eceae2;          /* 正文纸面（暖米，压暗以减弱眩光） */
     --ink: #33302a;            /* 墨色（非纯黑，降低反差） */
@@ -47,11 +62,17 @@
     --seal-text: #fdf9f0;
     --code-bg: #e7e4da;
     --code-text: #35322b;
-    --code-key: #8a5a2b;       /* 关键字：赭褐 */
-    --code-str: #4f6b45;       /* 字符串：苔绿 */
-    --code-num: #97503f;       /* 数值：砖红 */
-    --code-fn: #55483a;        /* 函数名 */
+    --code-key: #7e22ce;       /* 关键字：紫 */
+    --code-str: #166534;       /* 字符串：绿 */
+    --code-num: #b91c1c;       /* 数值：橙 */
+    --code-fn: #1d4ed8;        /* 函数名：蓝 */
     --code-com: #8a857a;       /* 注释：明确弱化 */
+    --code-builtin: #0c6478;   /* 内建对象：青 */
+    --code-tag: #b91c1c;       /* HTML 标签：红 */
+    --code-attr: #845708;      /* HTML 属性：金 */
+    --code-sel: #7e22ce;       /* CSS 选择器：紫 */
+    --code-prop: #1d4ed8;      /* CSS 属性：蓝 */
+    --code-op: #6b6459;        /* 运算符：弱化 */
     --side-bg: #e4e1d7;        /* 比正文纸面略深一档，靠色阶而非明暗对比区分 */
     --side-text: #33302a;
     --side-soft: #4c473f;
@@ -62,8 +83,193 @@
     --input-bg: #f4f2eb;
   }
 
-  /* 深色主题：同样遵循低反差原则 —— 侧栏与正文亮度差仅一档，
-     文字用暖白而非纯白（#fff 在暗底上会产生光晕，长时间阅读刺眼）。 */
+  /* 02 极简 —— 黑白 + 暖灰。锚点：#FAF9F7 / #252525 / #77736D / #8B5E3C / #E5E1DB
+     版面上唯一的彩色是强调色棕；代码块是例外 —— 语法高亮需要色相区分 token 类别，
+     故内部保留完整色谱，靠代码块边界把这份"花"圈在版心之外。 */
+  :root[data-theme="minimal"] {
+    --paper: #faf9f7;
+    --ink: #252525;
+    --ink-soft: #55524d;
+    --ink-faint: #77736d;
+    --line: #e5e1db;
+    --line-strong: #d2cdc5;
+    --accent: #8b5e3c;
+    --accent-deep: #6f4a2e;
+    --accent-tint: rgba(139, 94, 60, 0.09);
+    --seal-red: #8b5e3c;       /* 中性主题下印章与强调色统一，避免突兀的第二个色相 */
+    --seal-text: #faf9f7;
+    --code-bg: #f2f0ec;
+    --code-text: #2b2b2b;
+    --code-key: #a21caf;
+    --code-str: #166534;
+    --code-num: #c2410c;
+    --code-fn: #1d4ed8;
+    --code-com: #89847c;
+    --code-builtin: #0e7490;
+    --code-tag: #be123c;
+    --code-attr: #92610a;
+    --code-sel: #7e22ce;
+    --code-prop: #1d4ed8;
+    --code-op: #6f6a62;
+    --side-bg: #f3f1ed;
+    --side-text: #252525;
+    --side-soft: #46433e;
+    --side-faint: #605c56;
+    --side-line: #e5e1db;
+    --side-line-strong: #d2cdc5;
+    --hover: rgba(37, 37, 37, 0.045);
+    --input-bg: #ffffff;
+  }
+
+  /* 03 清爽 —— 白 + 深蓝。锚点：#FFFFFF / #172033 / #2563EB / #64748B / #EFF6FF
+     唯一的纯白纸面主题，侧栏用 #EFF6FF 的更浅一档撑开层次，不靠明暗对比。 */
+  :root[data-theme="tech"] {
+    --paper: #ffffff;
+    --ink: #172033;
+    --ink-soft: #45536b;
+    --ink-faint: #64748b;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    --accent: #2563eb;
+    --accent-deep: #1d4ed8;
+    --accent-tint: rgba(37, 99, 235, 0.08);
+    --seal-red: #2563eb;
+    --seal-text: #ffffff;
+    --code-bg: #f4f7fc;
+    --code-text: #1e293b;
+    --code-key: #7c3aed;
+    --code-str: #047857;
+    --code-num: #b45309;
+    --code-fn: #1d4ed8;
+    --code-com: #8595ab;
+    --code-builtin: #0369a1;
+    --code-tag: #be123c;
+    --code-attr: #a16207;
+    --code-sel: #9333ea;
+    --code-prop: #1d4ed8;
+    --code-op: #64748b;
+    --side-bg: #f7faff;       /* 纯白纸面无法再提亮，侧栏改用极浅蓝调区分 */
+    --side-text: #172033;
+    --side-soft: #3a475d;
+    --side-faint: #5a6880;
+    --side-line: #e6edf7;
+    --side-line-strong: #cfdcee;
+    --hover: rgba(37, 99, 235, 0.055);
+    --input-bg: #ffffff;
+  }
+
+  /* 04 复古 —— 米白 + 墨绿。锚点：#F5F1E8 / #292B25 / #3F5D4A / #A66A3F / #EAE4D8
+     主色墨绿承担链接与选中态，强调色赭石留给序号与印章，两色相互不抢。 */
+  :root[data-theme="vintage"] {
+    --paper: #f5f1e8;
+    --ink: #292b25;
+    --ink-soft: #56594e;
+    --ink-faint: #7b7d70;
+    --line: #ded8c9;
+    --line-strong: #c8c1ae;
+    --accent: #3f5d4a;
+    --accent-deep: #32493a;
+    --accent-tint: rgba(63, 93, 74, 0.1);
+    --seal-red: #94582f;       /* 赭石落款，与墨绿主色形成暖冷对照（锚点 #A66A3F 压深一档以过 AA） */
+    --seal-text: #f7f3ea;
+    --code-bg: #eae4d8;
+    --code-text: #2b2d26;
+    --code-key: #7e22ce;
+    --code-str: #166534;
+    --code-num: #9a3412;
+    --code-fn: #1d4ed8;
+    --code-com: #8b8877;
+    --code-builtin: #0d6660;
+    --code-tag: #b91c1c;
+    --code-attr: #845708;
+    --code-sel: #7e22ce;
+    --code-prop: #1d4ed8;
+    --code-op: #6d6a5c;
+    --side-bg: #efeadd;
+    --side-text: #292b25;
+    --side-soft: #4a4d42;
+    --side-faint: #64675a;
+    --side-line: #dfd9ca;
+    --side-line-strong: #cbc4b1;
+    --hover: rgba(41, 43, 37, 0.045);
+    --input-bg: #faf7f0;
+  }
+
+  /* 05 日系 —— 奶油白 + 雾蓝。锚点：#FCFBF7 / #34383D / #718A9A / #C98F8F / #EEF1F2
+     整体饱和度最低的一套；雾蓝主色偏浅，正文与链接的区分靠字重而非色彩浓度。 */
+  :root[data-theme="soft"] {
+    --paper: #fcfbf7;
+    --ink: #34383d;
+    --ink-soft: #5b626a;
+    --ink-faint: #7b838c;
+    --line: #e6e8e6;
+    --line-strong: #d2d6d7;
+    --accent: #5b7788;         /* #718A9A 在浅底上对比不足，主色压深一档保证可读 */
+    --accent-deep: #4a6472;
+    --accent-tint: rgba(113, 138, 154, 0.11);
+    --seal-red: #a15f5f;       /* 锚点 #C98F8F 配浅字仅 2.6:1，印章文字不可读，压深至 AA */
+    --seal-text: #fffdf9;
+    --code-bg: #eef1f2;
+    --code-text: #31353a;
+    --code-key: #7c3aed;
+    --code-str: #0f766e;
+    --code-num: #a34d0a;
+    --code-fn: #3b6ea5;
+    --code-com: #83898e;
+    --code-builtin: #0e7490;
+    --code-tag: #b3384a;
+    --code-attr: #8a6520;
+    --code-sel: #7c3aed;
+    --code-prop: #3b6ea5;
+    --code-op: #6f767c;
+    --side-bg: #f5f4ef;
+    --side-text: #34383d;
+    --side-soft: #4f565d;
+    --side-faint: #69717a;
+    --side-line: #e8e8e3;
+    --side-line-strong: #d5d8d6;
+    --hover: rgba(52, 56, 61, 0.04);
+    --input-bg: #ffffff;
+  }
+
+  /* 06 夜阑 —— 深灰 + 橙色。锚点：#111315 / #E8E6E1 / #92979B / #F59E0B / #1B1F22
+     唯一的深色主题：侧栏比正文更暗一档，文字用暖白而非纯白（#fff 在暗底上会产生光晕）。 */
+  :root[data-theme="midnight"] {
+    --paper: #111315;
+    --ink: #e8e6e1;
+    --ink-soft: #b0b4b7;
+    --ink-faint: #92979b;
+    --line: #24282b;
+    --line-strong: #343a3e;
+    --accent: #f59e0b;
+    --accent-deep: #fbbf24;    /* 暗底上"更深"= 更亮，hover 需提亮而非压暗 */
+    --accent-tint: rgba(245, 158, 11, 0.12);
+    --seal-red: #9a4f04;       /* 橙色印章配浅字仅 3.0:1，压深保证落款可读 */
+    --seal-text: #fdf6e9;
+    --code-bg: #1b1f22;
+    --code-text: #ddd9d2;
+    --code-key: #c792ea;       /* 暗底上彩色需提亮提饱和，否则发浑 */
+    --code-str: #a5d6a7;
+    --code-num: #ffab70;
+    --code-fn: #82aaff;
+    --code-com: #7d8286;
+    --code-builtin: #5fd7d7;
+    --code-tag: #ff8a80;
+    --code-attr: #ffd479;
+    --code-sel: #c792ea;
+    --code-prop: #82aaff;
+    --code-op: #9aa0a4;
+    --side-bg: #0c0e10;
+    --side-text: #e8e6e1;
+    --side-soft: #bcc0c3;
+    --side-faint: #9ba0a4;
+    --side-line: #1e2225;
+    --side-line-strong: #2e3438;
+    --hover: rgba(255, 255, 255, 0.055);
+    --input-bg: #1b1f22;
+  }
+
+  /* 07 墨夜 —— 原深色主题，暖褐调，与 01 素笺同色系 */
   :root[data-theme="dark"] {
     --paper: #1c1a17;
     --ink: #ddd8cc;
@@ -78,11 +284,17 @@
     --seal-text: #fdf3e8;
     --code-bg: #232019;
     --code-text: #d5cfc2;
-    --code-key: #d0a86a;
-    --code-str: #9db183;
-    --code-num: #cd8f76;
-    --code-fn: #c8c0ad;
+    --code-key: #d3a0e8;
+    --code-str: #a8cf8e;
+    --code-num: #f0a878;
+    --code-fn: #8ab4f8;
     --code-com: #7c7669;
+    --code-builtin: #6fd0c8;
+    --code-tag: #f28b82;
+    --code-attr: #e6c07b;
+    --code-sel: #d3a0e8;
+    --code-prop: #8ab4f8;
+    --code-op: #9c9482;
     --side-bg: #16150f;
     --side-text: #ddd8cc;
     --side-soft: #b5af9f;
@@ -337,28 +549,222 @@
 
   .nav-btn:disabled { opacity: 0.3; cursor: default; }
 
+  /* ===== 思维导图 ===== */
+  /* 350 篇文档一次全画会糊成一团，所以分两层：中心 + 16 个分类常驻，
+     点开某个分类才展开它的文档。同一时刻只展开一个分类，保证放射状布局不重叠。 */
+  .map-btn {
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-soft);
+    padding: 5px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-family: var(--sans);
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+    transition: color 0.18s, border-color 0.18s, background 0.18s;
+  }
+
+  .map-btn:hover { color: var(--accent-deep); border-color: var(--accent); }
+
+  .map-btn.active {
+    color: var(--seal-text);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .mindmap {
+    display: none;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--paper);
+  }
+
+  .mindmap.show { display: block; }
+
+  /* touch-action:none 让触摸拖动只平移画布，不连带滚动/缩放整个页面 */
+  .mindmap svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+  .mindmap svg.dragging { cursor: grabbing; }
+  /* 拖动中屏蔽节点 hover，避免指针扫过时标签不停闪烁 */
+  .mindmap svg.dragging .mm-node { pointer-events: none; }
+
+  .mm-link {
+    fill: none;
+    stroke: var(--line-strong);
+    stroke-width: 1.2;
+    opacity: 0.75;
+  }
+
+  .mm-link.branch { stroke: var(--accent); opacity: 0.5; stroke-width: 1.5; }
+
+  .mm-node { cursor: pointer; }
+
+  .mm-node circle {
+    fill: var(--paper);
+    stroke: var(--line-strong);
+    stroke-width: 1.4;
+    transition: fill 0.18s, stroke 0.18s;
+  }
+
+  .mm-node text {
+    font-family: var(--sans);
+    fill: var(--ink);
+    dominant-baseline: middle;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .mm-node:hover circle { stroke: var(--accent); fill: var(--accent-tint); }
+  .mm-node:hover text { fill: var(--accent-deep); }
+
+  .mm-hub circle { fill: var(--accent); stroke: var(--accent-deep); stroke-width: 2; }
+  .mm-hub text { fill: var(--seal-text); font-weight: 600; letter-spacing: 0.08em; }
+  /* 中心的计数与返回提示是次要信息，压低到 0.72 不透明度，避免与标题抢注意力 */
+  .mm-hub .mm-hub-sub { font-weight: 400; opacity: 0.72; letter-spacing: 0.04em; }
+  .mm-hub:hover circle { fill: var(--accent-deep); stroke: var(--accent-deep); }
+  .mm-hub:hover text { fill: var(--seal-text); }
+  /* 顶层中心不可点：光标与 hover 都退回静态，避免暗示可交互 */
+  .mm-hub-static { cursor: default; }
+  .mm-hub-static:hover circle { fill: var(--accent); stroke: var(--accent-deep); }
+
+  .mm-cat text { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+  .mm-cat .mm-cnt { fill: var(--ink-faint); font-size: 11px; font-weight: 400; }
+
+  /* 可下钻节点填实心，与叶子文档的空心圈区分：实心 = 还有下一层 */
+  .mm-cat circle { fill: var(--accent-tint); stroke: var(--accent); }
+
+  .mm-leaf circle { stroke-width: 1.1; }
+  .mm-leaf text { font-size: 11px; fill: var(--ink-soft); }
+  .mm-leaf.active circle { fill: var(--seal-red); stroke: var(--seal-red); }
+  .mm-leaf.active text { fill: var(--seal-red); font-weight: 600; }
+
+  .mm-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    pointer-events: none;
+    text-align: center;
+  }
+
+  .mm-zoom {
+    position: absolute;
+    right: 18px;
+    bottom: 18px;
+    display: flex;
+    gap: 6px;
+  }
+
+  .mm-zoom button {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    color: var(--ink-soft);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+    font-family: var(--sans);
+    transition: color 0.18s, border-color 0.18s;
+  }
+
+  .mm-zoom button:hover { color: var(--accent-deep); border-color: var(--accent); }
+
+  /* ===== 主题选择器 ===== */
+  .theme-picker { position: relative; margin-left: 4px; flex-shrink: 0; }
+
   .theme-btn {
     background: transparent;
     border: 1px solid var(--line-strong);
     border-radius: 3px;
     color: var(--ink-faint);
-    width: 30px;
     height: 26px;
-    margin-left: 4px;
+    padding: 0 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    gap: 6px;
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
     transition: color 0.18s, border-color 0.18s;
   }
 
   .theme-btn:hover { color: var(--accent-deep); border-color: var(--accent); }
-  .theme-btn svg { width: 14px; height: 14px; display: block; }
-  /* 浅色下显示月亮（点击去深色），深色下显示太阳 */
+  .theme-btn svg { width: 13px; height: 13px; display: block; }
+  /* 浅色主题显示月亮（点击可去深色），深色主题显示太阳 */
   .theme-btn .icon-sun { display: none; }
-  :root[data-theme="dark"] .theme-btn .icon-sun { display: block; }
-  :root[data-theme="dark"] .theme-btn .icon-moon { display: none; }
+  :root[data-theme="dark"] .theme-btn .icon-sun,
+  :root[data-theme="midnight"] .theme-btn .icon-sun { display: block; }
+  :root[data-theme="dark"] .theme-btn .icon-moon,
+  :root[data-theme="midnight"] .theme-btn .icon-moon { display: none; }
+
+  .theme-btn .current { display: none; }
+  @media (min-width: 900px) { .theme-btn .current { display: inline; } }
+
+  .theme-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 208px;
+    padding: 5px;
+    background: var(--paper);
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.14);
+    z-index: 40;
+    display: none;
+  }
+
+  .theme-menu.open { display: block; }
+
+  .theme-opt {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 7px 9px;
+    background: transparent;
+    border: 0;
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .theme-opt:hover { background: var(--hover); color: var(--ink); }
+  .theme-opt[aria-checked="true"] { color: var(--accent-deep); font-weight: 600; }
+
+  /* 色卡用主题自身的纸面 / 主色 / 正文三色拼出，直接预览而非文字描述 */
+  .theme-opt .swatch {
+    width: 30px;
+    height: 16px;
+    border-radius: 2px;
+    border: 1px solid var(--line-strong);
+    flex-shrink: 0;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .theme-opt .swatch i { flex: 1; }
+  .theme-opt .swatch i:nth-child(2) { flex: 0 0 9px; }
+
+  .theme-opt .tag {
+    margin-left: auto;
+    font-family: var(--serif-num);
+    font-size: 0.68rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
 
   .content {
     flex: 1;
@@ -486,12 +892,18 @@
     line-height: 1.8;
   }
 
-  /* 语法高亮：低饱和暖调，避免霓虹色刺眼 */
-  .doc pre .tk-com { color: var(--code-com); font-style: italic; }
-  .doc pre .tk-str { color: var(--code-str); }
-  .doc pre .tk-num { color: var(--code-num); }
-  .doc pre .tk-key { color: var(--code-key); }
-  .doc pre .tk-fn  { color: var(--code-fn); }
+  /* 语法高亮：多色相区分 token 类别，注释与运算符刻意弱化以免喧宾夺主 */
+  .doc pre .tk-com     { color: var(--code-com); font-style: italic; }
+  .doc pre .tk-str     { color: var(--code-str); }
+  .doc pre .tk-num     { color: var(--code-num); }
+  .doc pre .tk-key     { color: var(--code-key); font-weight: 600; }
+  .doc pre .tk-fn      { color: var(--code-fn); }
+  .doc pre .tk-builtin { color: var(--code-builtin); }
+  .doc pre .tk-tag     { color: var(--code-tag); }
+  .doc pre .tk-attr    { color: var(--code-attr); }
+  .doc pre .tk-sel     { color: var(--code-sel); }
+  .doc pre .tk-prop    { color: var(--code-prop); }
+  .doc pre .tk-op      { color: var(--code-op); }
 
   .doc table {
     border-collapse: collapse;
@@ -540,13 +952,27 @@
   .load-error {
     max-width: 46rem;
     margin: 0 auto;
-    padding: 14px 18px;
-    border: 1px solid rgba(138, 107, 65, 0.35);
+    padding: 16px 20px;
+    border: 1px solid var(--accent);   /* 不写死 rgba，否则新配色下描边会失配 */
     border-radius: 4px;
     background: var(--accent-tint);
     color: var(--accent-deep);
     font-size: 0.9rem;
+    line-height: 1.75;
   }
+
+  .load-error p { margin-top: 9px; color: var(--ink-soft); }
+
+  .load-error code {
+    font-family: var(--mono);
+    font-size: 0.84em;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--code-bg);
+    color: var(--code-text);
+  }
+
+  .load-error .reason { color: var(--ink-faint); font-size: 0.84em; }
 
   /* ===== Welcome（编辑部式 hero） ===== */
   .welcome {
@@ -702,15 +1128,20 @@
     <div class="breadcrumb" id="breadcrumb">选择左侧文档开始阅读</div>
     <button class="nav-btn" id="prevBtn" disabled onclick="navPage(-1)">← 上一篇</button>
     <button class="nav-btn" id="nextBtn" disabled onclick="navPage(1)">下一篇 →</button>
-    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="切换深色 / 浅色" aria-label="切换深色 / 浅色">
-      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
-      </svg>
-      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="4"/>
-        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
-      </svg>
-    </button>
+    <button class="map-btn" id="mapBtn" onclick="toggleMindmap()" aria-pressed="false">脑图</button>
+    <div class="theme-picker" id="themePicker">
+      <button class="theme-btn" id="themeBtn" onclick="toggleThemeMenu()" title="切换配色" aria-label="切换配色" aria-haspopup="true" aria-expanded="false">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+        </svg>
+        <span class="current" id="themeLabel"></span>
+      </button>
+      <div class="theme-menu" id="themeMenu" role="menu" aria-label="配色主题"></div>
+    </div>
   </div>
   <div class="content" id="content">
     <div class="welcome">
@@ -724,6 +1155,15 @@
       <div class="index" id="tags"></div>
       <p class="hint">点击目录开始翻阅 · 支持 ← / → 键翻页</p>
     </div>
+  </div>
+  <div class="mindmap" id="mindmap">
+    <svg id="mmSvg" role="img" aria-label="知识库思维导图"></svg>
+    <div class="mm-zoom">
+      <button onclick="mmZoom(1.25)" title="放大" aria-label="放大">＋</button>
+      <button onclick="mmZoom(0.8)" title="缩小" aria-label="缩小">－</button>
+      <button onclick="mmReset()" title="复位" aria-label="复位">⤾</button>
+    </div>
+    <div class="mm-hint">点击分类逐层展开 · 点击中心返回上层 · 点击文档打开 · 拖动平移 · 滚轮缩放</div>
   </div>
 </main>
 
@@ -741,6 +1181,7 @@
     "7-移动端": "移动端",
     "8-Node": "Node.js",
     "9-AI": "AI",
+    "10-小游戏": "小游戏 & Cocos",
     "数据结构": "数据结构",
     "算法": "算法",
     "设计模式": "设计模式",
@@ -752,7 +1193,7 @@
   const CAT_ORDER = [
     "0-HTML", "1-CSS", "2-JS", "3-HTTP",
     "4-VUE", "5-React", "8-Node",
-    "6-CI&工程化", "7-移动端", "0-调试与监控",
+    "6-CI&工程化", "7-移动端", "10-小游戏", "0-调试与监控",
     "9-AI",
     "数据结构", "算法", "设计模式", "面向对象",
     "_root"
@@ -804,7 +1245,7 @@
   }
 
   // 内联目录数据（兼容 file:// 协议直接打开）
-  const INLINE_CATALOG = {"0-HTML":["* Web Worker.md","0-HTML5新特性 & 语义化.md","1-BFC、盒模型（flex&grid）.md","1.1-Flex.md","1.2-Grid.md","2-垂直居中的多种方案.md","2-行内元素 VS 块级元素 VS Void 元素.md","3-data-属性.md","4-获得宽高的方式.md","<!DOCTYPE>.md","<a>.md","<canvas> & <svg>.md","<iframe>.md","<img> & Base64.md","<label>.md","<meta>.md","<script>.md"],"1-CSS":["* GPU加速.md","0-样式选择器优先级.md","1-清除浮动.md","1-边距重叠.md","10-less & scss.md","2-文本溢出.md","3-元素隐藏.md","3-响应式布局 & 自适应布局.md","4-动画（transition & animation）.md","5-src VS href.md","6-link VS @import.md","7-vmax & vmin.md","8-flex-grow & flex-shrink.md","9-Reset VS Normalize .md"],"2-JS":["0-原型与原型链区别.md","1-作用域.md","1.1-浏览器的垃圾回收机制.md","1.1-闭包.md","1.2-内存监控.md","1.md","12-Promise & Async & SetTimeout.md","12.1-try-catch.md","12.2-事件循环机制.md","15-Node进程和线程.md","15.1-Node关系型数据库VS非关系型数据库.md","19-mouseout & mouseleave.md","2-let、const、 var.md","20-onload & DOMContentLoaded .md","21-加载时间线.md","22-事件流Click 时间绑定.md","23-如何将js代码抽象成AST.md","3-数据类型 .md","3.0.1-Set(数组去重).md","3.0.2-Map(数组元素出现次数).md","3.1-检测数据类型.md","3.2-Array.md","3.2.0-Array.from().md","3.2.0-Array.of().md","3.2.1-sort.md","3.2.2-splice.md","3.3-String.md","3.4-深拷贝 & 浅拷贝 - 循环引用.md","4-表达式.md","5-函数function & this.md","5.1-bind call apply .md","5.2-防抖函数 & 节流函数.md","6-ES6（ECMAScript 2015）.md","7-CommonJS VS ES6.md","8-Cookie & storage & indexDB .md"],"3-HTTP":["1-状态码.md","2-协商缓存 & 强缓存.md","2.0-刷新强缓存方法.md","3-Header.md","3-跨域问题.md","5- 应用层 HTTP1.0  & HTTP2.0 & HTTP3.0.md","5.1-Http & HTTPS.md","5.1-应用层GRPC协议.md","6- 传输层 TCP & UDP & QUIC.md","6-网络协议.md","6.1-TCP3次握手4次挥手 & 输入url 浏览器处理过程.md","7-RestFul & GraphQL.md","7.1-Get & Post.md","Cookie 和 Session.md","Data Flow.md","OSI7层模型.md","URI、URL 和 URN.md","URL 长度问题.md","丢包408.md","签名过程.md"],"4-VUE":["* 数据劫持 & 虚拟DOM.md","0-compositionAPI.md","0-双向数据绑定.md","0.1-Vue的数据劫持源码.md","0.1-vue2.0 VS vue3.0.md","0.2-ref 和 reactive区别.md","0.2-vue 依赖收集.md","0.3-setup.md","0.3-vue 渲染的整个过程.md","1.0-template.md","1.1-computed.md","1.2-nextTick.md","1.2-watch VS watchEffect.md","1.3-Vue 过渡与动画.md","1.4-Vue 修饰符.md","2-Components.md","3-指令.md","3.1-v-for & v-if.md","4-生命周期钩子.md","5-Mixin&Plugin.md","7-VueRouter.md","7.1-keep-alive.md","7.2-activeClass.md","8-Vuex.md","9-VueCLI.md","Vue Resource.md","key.md"],"5-React":["0-Fiber.md","1-useEffect.md","12-Redux(React Native).md","2-useMemo.md","3-副作用.md","4-更新整个组件.md","5-key值的重要性.md","Hooks.md","Redux.md","class.md","react & react-dom.md","react18.md","setState.md","useHover.md","生命周期.md","高阶组件.md"],"6-CI&工程化":["0-Webpack & Vite.md","0.1-webpack构建流程.md","0.2-webpack 生命周期.md","0.3-webpack tapable.md","0.3.0-Loader 输入什么输出什么.md","0.3.1-Proxy.md","0.3.2-垫片Shimming.md","0.3.3-webpack5.0.md","0.4-webpack 缓存策略.md","0.5-webpack 提高构建速度的方式.md","1-npm-license.md","1-如何封装一个组件？.md","2-npm - login.md","2-npm - searchAndTable.md","2-npm - spm 埋点.md","2-npm - starblink-cli.md","3-测试.md","3.0-Jest-单元测试.md","3.1-Jest-快照测试.md","3.2-Puppeteer-自动化测试.md","3.3-Storybook-视觉测试.md","4-Typescript.md","5-CI & CD.md","怎么设计一个沙盒.md","浏览器兼容性.md","监控-性能.md","监控-数据用户行为监控-mparticle.md","监控-错误-sentry.md"],"7-移动端":["* Service Workers & PWA应用 离线缓存.md","0-React Native.md","1-JS Bridge.md","1-唤端.md","10-LoginForm.md","11-FlatList.md","13-SSO单点登录.md","14-BFF安全性.md","2-IOS.md","3-Android.md","4-webview.md","5-RN & flutter & Native.md","6-300ms延迟.md","8-性能优化.md","9-全面屏适配方案.md"],"8-Node":["6-Node&BFF.md"],"9-AI":["0-LLM 基础概念.md","1-Prompt Engineering（提示词工程）.md","2-RAG & Embedding（检索增强生成）.md","3-Function Calling & MCP.md","4-流式渲染（SSE & Fetch Streaming）.md","5-AI Agent（智能体）.md","6-前端 AI 工程化（Vercel AI SDK & LangChain.js）.md","7-端侧 AI（WebLLM & Transformers.js & WebGPU）.md","8-AI 编程工具与工程实践（Copilot & Claude Code & Cursor）.md"],"数据结构":["1-链表List.md","2-栈Stack（数组Array push pop）.md","3-队列Queue (数组Array shift unshift).md","4-Hash表 (对象{} & Map) .md","5-堆Heap.md","6-树Tree.md","7-图Graph.md","8-对比.md","readme.md"],"算法":["0-数组/1-两数之和（hash）.md","0-数组/10-合并区间.md","0-数组/11-最长上升子序列.md","0-数组/12-最大子数组和(LC53).md","0-数组/13-移动零(LC283).md","0-数组/14-买卖股票的最佳时机(LC121).md","0-数组/15-接雨水(LC42).md","0-数组/16-螺旋矩阵(LC54).md","0-数组/17-滑动窗口最大值(LC239).md","0-数组/2-三数之和（双指针）.md","0-数组/3-删除有序数组中的重复项.md","0-数组/4-打乱顺序（Fisher-Yates）.md","0-数组/5-岛屿数量(DFS).md","0-数组/6-最小数字 (3个元素).md","0-数组/7-有效的括号.md","0-数组/8-合并两个有序数组.md","0-数组/9-数组中第k个最大元素.md","0-时间复杂度&空间复杂度.md","1-字符串/1-两数相加.md","1-字符串/2-最大重复字符串.md","1-字符串/3-最长不重复字符串.md","1-字符串/4-最长回文串.md","1-字符串/5-字符串相加·大数相加(LC415).md","1-字符串/51-最长回文子串.md","1-字符串/6-字符串解码(LC394).md","1-字符串/7-版本号比较(LC165).md","1-字符串/8-最长公共前缀(LC14).md","1-排序算法.md","2-查找算法.md","2-树&图/0-二叉树遍历.md","2-树&图/1-二叉搜索树转换为累加树.md","2-树&图/2-二叉树层序遍历(LC102).md","2-树&图/3-二叉树的最大深度(LC104).md","3-搜索算法（DFS&BFS）.md","3-递归、其他/1-斐波那契数.md","3-递归、其他/2-递归-frogJump-NC68.青蛙跳台阶.md","3-递归、其他/3-爬楼梯(LC70).md","3-递归、其他/4-全排列(LC46).md","3-递归、其他/5-LRU缓存(LC146).md","3-递归、其他/6-反转链表(LC206).md","3-递归、其他/7-合并两个有序链表(LC21).md","3-递归、其他/8-环形链表(LC141).md","4-DP算法-动态规划.md","5-颜色转化.md","6-AST.md","7-Diff算法（React&VUE）.md","leetcode/-1-sring-convertString-进制转换.md","leetcode/-10-HJ101.输入整型数组和排序标识.md","leetcode/-11-*HJ106.字符串逆序.md","leetcode/-12-HJ8.合并表记录.md","leetcode/-13-*HJ14.字符串排序.md","leetcode/-14-HJ27.查找兄弟单词.md","leetcode/-15-*NC37.合并区间.md","leetcode/-16-*HJ68.成绩排序.md","leetcode/-17-NC52.括号序列.md","leetcode/-18-*括号的最大嵌套深度.md","leetcode/-19-leetcode 77.组合.md","leetcode/-20-*leetcode 674.最长连续递增序列.md","leetcode/-21-最长回文串.md","leetcode/-21-最长回文子串.md","leetcode/-22-最小覆盖子串.md","leetcode/-3-arr-readline-明明的随机数.md","leetcode/-4-string-Set-countUniqueChars字符个数统计.md","leetcode/-6-string-command-正则-calculateCoordinatesHJ17.坐标移动.md","leetcode/-7-string-password-HJ20.密码验证合格程序.md","leetcode/-8-*HJ23.删除字符串中出现次数最少的字符.md","leetcode/-9-*HJ33.整数与IP地址间的转换.md","leetcode/0.md","leetcode/1-连续子区间和.md","leetcode/10-员工工号问题.md","leetcode/11-身高体重排序.md","leetcode/12-整数对最小和.md","leetcode/13-最大消费金额.md","leetcode/14-磁盘容量排序.md","leetcode/15-查找字符串中相同字符连续出现的最大次数.md","leetcode/16-给定 n 和 k，返回第 k 个排列.md","leetcode/17-求数组中最大 N 个与最小 N 个数的和，需要对数组进行去重.md","leetcode/18-分苹果.md","leetcode/19-单词接龙.md","leetcode/2-arr-去重排序.md","leetcode/20-报数游戏.md","leetcode/21-太阳能板最大面积.md","leetcode/22-篮球比赛.md","leetcode/23-两数之和绝对值最小.md","leetcode/24-按索引范围翻转文章片段.md","leetcode/25-最长连续子序列.md","leetcode/26-考勤问题.md","leetcode/27-字符串的去重和排序.md","leetcode/28-找车位-最大距离.md","leetcode/29-开心消消乐.md","leetcode/3-找终点(最小步骤数).md","leetcode/30-判断字符串子序列.md","leetcode/31-组成最大数.md","leetcode/32-字符串筛选排序.md","leetcode/33-停车场车辆统计.md","leetcode/34-小朋友高矮排列.md","leetcode/35-GPU 执行时长.md","leetcode/36-素勾股数.md","leetcode/37-取字符串的所有整数最小和.md","leetcode/38-找出第一次相同且连续的子串.md","leetcode/39-众数和中位数.md","leetcode/4-运维日志排序.md","leetcode/40-玩牌高手.md","leetcode/6-arr-找到好朋友.md","leetcode/7-出租车计费.md","leetcode/8-最小交换次数.md","leetcode/9-求解连续数列.md","leetcode/findDuplicate.md","leetcode/singleNumber.md","leetcode/sortColors.md","leetcode/机试.md"],"设计模式":["readme.md","创建型/单例模式(Store).md","创建型/原型模式.md","创建型/工厂模式 (Circle).md","结构型/享元模式（模具试装）.md","结构型/代理模式(Proxy).md","结构型/组合模式（文件系统）.md","结构型/装饰者模式(Mixins-Coffe).md","结构型/适配者模式（兼容）.md","结构型/门面模式（JS Bridge）.md","行为型/中介者模式.md","行为型/发布订阅者模式.md","行为型/命令模式.md","行为型/模板模式.md","行为型/状态模式.md","行为型/策略模式(Form).md","行为型/职责链模式.md","行为型/观察者模式(Vue).md","行为型/迭代器模式(For).md"],"面向对象":["自定义类.md"],"_root":["0-项目介绍.md","1-Safe（安全）.md","10-行业动态.md","2-Performance（性能优化）.md","2.1-Perfomance 参数.md","2.2-Perfomance资源加载顺序.md","2.2-Performance-CSS.md","2.2-Performance-GZIP.md","2.3-Performance-Web Worker.md","3-SEO（搜索排名）.md","5-Case Websocket.md","5-Case 音视频处理.md","5-Case （项目案例）.md","5-Case1怎么开发一封前端高质量邮件信息.md","5-Case2虚拟列表实现原理.md","5-Case3断点续传问题.md","5-Case代码高亮.md","5-Case富文本Quill.md","6-登陆逻辑 & 后端鉴权.md","7-微前端Qiankun.md","8-Google 插件.md","8-Shopify App 开发.md","8-小程序 Taro.md","9-SSR Next.md","langchain & Autogen.md","开源项目.md"],"0-调试与监控":["webview调试.md","线上监控与排查工具.md"]};
+  const INLINE_CATALOG = {"0-HTML":["* Web Worker.md","0-HTML5新特性 & 语义化.md","1-BFC、盒模型（flex&grid）.md","1.1-Flex.md","1.2-Grid.md","2-垂直居中的多种方案.md","2-行内元素 VS 块级元素 VS Void 元素.md","3-data-属性.md","4-获得宽高的方式.md","<!DOCTYPE>.md","<a>.md","<canvas> & <svg>.md","<iframe>.md","<img> & Base64.md","<label>.md","<meta>.md","<script>.md"],"1-CSS":["* GPU加速.md","0-样式选择器优先级.md","1-清除浮动.md","1-边距重叠.md","10-less & scss.md","2-文本溢出.md","3-元素隐藏.md","3-响应式布局 & 自适应布局.md","4-动画（transition & animation）.md","5-src VS href.md","6-link VS @import.md","7-vmax & vmin.md","8-flex-grow & flex-shrink.md","9-Reset VS Normalize .md"],"2-JS":["0-原型与原型链区别.md","1-作用域.md","1.1-浏览器的垃圾回收机制.md","1.1-闭包.md","1.2-内存监控.md","1.md","12-Promise & Async & SetTimeout.md","12.1-try-catch.md","12.2-事件循环机制.md","15-Node进程和线程.md","15.1-Node关系型数据库VS非关系型数据库.md","19-mouseout & mouseleave.md","2-let、const、 var.md","20-onload & DOMContentLoaded .md","21-加载时间线.md","22-事件流Click 时间绑定.md","23-如何将js代码抽象成AST.md","3-数据类型 .md","3.0.1-Set(数组去重).md","3.0.2-Map(数组元素出现次数).md","3.1-检测数据类型.md","3.2-Array.md","3.2.0-Array.from().md","3.2.0-Array.of().md","3.2.1-sort.md","3.2.2-splice.md","3.3-String.md","3.4-深拷贝 & 浅拷贝 - 循环引用.md","4-表达式.md","5-函数function & this.md","5.1-bind call apply .md","5.2-防抖函数 & 节流函数.md","6-ES6（ECMAScript 2015）.md","7-CommonJS VS ES6.md","8-Cookie & storage & indexDB .md"],"3-HTTP":["1-状态码.md","2-协商缓存 & 强缓存.md","2.0-刷新强缓存方法.md","3-Header.md","3-跨域问题.md","5- 应用层 HTTP1.0  & HTTP2.0 & HTTP3.0.md","5.1-Http & HTTPS.md","5.1-应用层GRPC协议.md","6- 传输层 TCP & UDP & QUIC.md","6-网络协议.md","6.1-TCP3次握手4次挥手 & 输入url 浏览器处理过程.md","7-RestFul & GraphQL.md","7.1-Get & Post.md","Cookie 和 Session.md","Data Flow.md","OSI7层模型.md","URI、URL 和 URN.md","URL 长度问题.md","丢包408.md","签名过程.md"],"4-VUE":["* 数据劫持 & 虚拟DOM.md","0-compositionAPI.md","0-双向数据绑定.md","0.1-Vue的数据劫持源码.md","0.1-vue2.0 VS vue3.0.md","0.2-ref 和 reactive区别.md","0.2-vue 依赖收集.md","0.3-setup.md","0.3-vue 渲染的整个过程.md","1.0-template.md","1.1-computed.md","1.2-nextTick.md","1.2-watch VS watchEffect.md","1.3-Vue 过渡与动画.md","1.4-Vue 修饰符.md","2-Components.md","3-指令.md","3.1-v-for & v-if.md","4-生命周期钩子.md","5-Mixin&Plugin.md","7-VueRouter.md","7.1-keep-alive.md","7.2-activeClass.md","8-Vuex.md","9-VueCLI.md","Vue Resource.md","key.md"],"5-React":["0-Fiber.md","1-useEffect.md","12-Redux(React Native).md","2-useMemo.md","3-副作用.md","4-更新整个组件.md","5-key值的重要性.md","Hooks.md","Redux.md","class.md","react & react-dom.md","react18.md","setState.md","useHover.md","生命周期.md","高阶组件.md"],"6-CI&工程化":["0-Webpack & Vite.md","0.1-webpack构建流程.md","0.2-webpack 生命周期.md","0.3-webpack tapable.md","0.3.0-Loader 输入什么输出什么.md","0.3.1-Proxy.md","0.3.2-垫片Shimming.md","0.3.3-webpack5.0.md","0.4-webpack 缓存策略.md","0.5-webpack 提高构建速度的方式.md","1-npm-license.md","1-如何封装一个组件？.md","2-npm - login.md","2-npm - searchAndTable.md","2-npm - spm 埋点.md","2-npm - starblink-cli.md","3-测试.md","3.0-Jest-单元测试.md","3.1-Jest-快照测试.md","3.2-Puppeteer-自动化测试.md","3.3-Storybook-视觉测试.md","4-Typescript.md","5-CI & CD.md","怎么设计一个沙盒.md","浏览器兼容性.md","监控-性能.md","监控-数据用户行为监控-mparticle.md","监控-错误-sentry.md"],"7-移动端":["* Service Workers & PWA应用 离线缓存.md","0-React Native.md","1-JS Bridge.md","1-唤端.md","10-LoginForm.md","11-FlatList.md","13-SSO单点登录.md","14-BFF安全性.md","2-IOS.md","3-Android.md","4-webview.md","5-RN & flutter & Native.md","6-300ms延迟.md","8-性能优化.md","9-全面屏适配方案.md"],"8-Node":["6-Node&BFF.md"],"9-AI":["0-LLM 基础概念.md","1-Prompt Engineering（提示词工程）.md","2-RAG & Embedding（检索增强生成）.md","3-Function Calling & MCP.md","4-流式渲染（SSE & Fetch Streaming）.md","5-AI Agent（智能体）.md","6-前端 AI 工程化（Vercel AI SDK & LangChain.js）.md","7-端侧 AI（WebLLM & Transformers.js & WebGPU）.md","8-AI 编程工具与工程实践（Copilot & Claude Code & Cursor）.md"],"数据结构":["1-链表List.md","2-栈Stack（数组Array push pop）.md","3-队列Queue (数组Array shift unshift).md","4-Hash表 (对象{} & Map) .md","5-堆Heap.md","6-树Tree.md","7-图Graph.md","8-对比.md","readme.md"],"算法":["0-数组/1-两数之和（hash）.md","0-数组/10-合并区间.md","0-数组/11-最长上升子序列.md","0-数组/12-最大子数组和(LC53).md","0-数组/13-移动零(LC283).md","0-数组/14-买卖股票的最佳时机(LC121).md","0-数组/15-接雨水(LC42).md","0-数组/16-螺旋矩阵(LC54).md","0-数组/17-滑动窗口最大值(LC239).md","0-数组/2-三数之和（双指针）.md","0-数组/3-删除有序数组中的重复项.md","0-数组/4-打乱顺序（Fisher-Yates）.md","0-数组/5-岛屿数量(DFS).md","0-数组/6-最小数字 (3个元素).md","0-数组/7-有效的括号.md","0-数组/8-合并两个有序数组.md","0-数组/9-数组中第k个最大元素.md","0-时间复杂度&空间复杂度.md","1-字符串/1-两数相加.md","1-字符串/2-最大重复字符串.md","1-字符串/3-最长不重复字符串.md","1-字符串/4-最长回文串.md","1-字符串/5-字符串相加·大数相加(LC415).md","1-字符串/51-最长回文子串.md","1-字符串/6-字符串解码(LC394).md","1-字符串/7-版本号比较(LC165).md","1-字符串/8-最长公共前缀(LC14).md","1-排序算法.md","2-查找算法.md","2-树&图/0-二叉树遍历.md","2-树&图/1-二叉搜索树转换为累加树.md","2-树&图/2-二叉树层序遍历(LC102).md","2-树&图/3-二叉树的最大深度(LC104).md","3-搜索算法（DFS&BFS）.md","3-递归、其他/1-斐波那契数.md","3-递归、其他/2-递归-frogJump-NC68.青蛙跳台阶.md","3-递归、其他/3-爬楼梯(LC70).md","3-递归、其他/4-全排列(LC46).md","3-递归、其他/5-LRU缓存(LC146).md","3-递归、其他/6-反转链表(LC206).md","3-递归、其他/7-合并两个有序链表(LC21).md","3-递归、其他/8-环形链表(LC141).md","4-DP算法-动态规划.md","5-颜色转化.md","6-AST.md","7-Diff算法（React&VUE）.md","leetcode/-1-sring-convertString-进制转换.md","leetcode/-10-HJ101.输入整型数组和排序标识.md","leetcode/-11-*HJ106.字符串逆序.md","leetcode/-12-HJ8.合并表记录.md","leetcode/-13-*HJ14.字符串排序.md","leetcode/-14-HJ27.查找兄弟单词.md","leetcode/-15-*NC37.合并区间.md","leetcode/-16-*HJ68.成绩排序.md","leetcode/-17-NC52.括号序列.md","leetcode/-18-*括号的最大嵌套深度.md","leetcode/-19-leetcode 77.组合.md","leetcode/-20-*leetcode 674.最长连续递增序列.md","leetcode/-21-最长回文串.md","leetcode/-21-最长回文子串.md","leetcode/-22-最小覆盖子串.md","leetcode/-3-arr-readline-明明的随机数.md","leetcode/-4-string-Set-countUniqueChars字符个数统计.md","leetcode/-6-string-command-正则-calculateCoordinatesHJ17.坐标移动.md","leetcode/-7-string-password-HJ20.密码验证合格程序.md","leetcode/-8-*HJ23.删除字符串中出现次数最少的字符.md","leetcode/-9-*HJ33.整数与IP地址间的转换.md","leetcode/0.md","leetcode/1-连续子区间和.md","leetcode/10-员工工号问题.md","leetcode/11-身高体重排序.md","leetcode/12-整数对最小和.md","leetcode/13-最大消费金额.md","leetcode/14-磁盘容量排序.md","leetcode/15-查找字符串中相同字符连续出现的最大次数.md","leetcode/16-给定 n 和 k，返回第 k 个排列.md","leetcode/17-求数组中最大 N 个与最小 N 个数的和，需要对数组进行去重.md","leetcode/18-分苹果.md","leetcode/19-单词接龙.md","leetcode/2-arr-去重排序.md","leetcode/20-报数游戏.md","leetcode/21-太阳能板最大面积.md","leetcode/22-篮球比赛.md","leetcode/23-两数之和绝对值最小.md","leetcode/24-按索引范围翻转文章片段.md","leetcode/25-最长连续子序列.md","leetcode/26-考勤问题.md","leetcode/27-字符串的去重和排序.md","leetcode/28-找车位-最大距离.md","leetcode/29-开心消消乐.md","leetcode/3-找终点(最小步骤数).md","leetcode/30-判断字符串子序列.md","leetcode/31-组成最大数.md","leetcode/32-字符串筛选排序.md","leetcode/33-停车场车辆统计.md","leetcode/34-小朋友高矮排列.md","leetcode/35-GPU 执行时长.md","leetcode/36-素勾股数.md","leetcode/37-取字符串的所有整数最小和.md","leetcode/38-找出第一次相同且连续的子串.md","leetcode/39-众数和中位数.md","leetcode/4-运维日志排序.md","leetcode/40-玩牌高手.md","leetcode/6-arr-找到好朋友.md","leetcode/7-出租车计费.md","leetcode/8-最小交换次数.md","leetcode/9-求解连续数列.md","leetcode/findDuplicate.md","leetcode/singleNumber.md","leetcode/sortColors.md","leetcode/机试.md"],"设计模式":["readme.md","创建型/单例模式(Store).md","创建型/原型模式.md","创建型/工厂模式 (Circle).md","结构型/享元模式（模具试装）.md","结构型/代理模式(Proxy).md","结构型/组合模式（文件系统）.md","结构型/装饰者模式(Mixins-Coffe).md","结构型/适配者模式（兼容）.md","结构型/门面模式（JS Bridge）.md","行为型/中介者模式.md","行为型/发布订阅者模式.md","行为型/命令模式.md","行为型/模板模式.md","行为型/状态模式.md","行为型/策略模式(Form).md","行为型/职责链模式.md","行为型/观察者模式(Vue).md","行为型/迭代器模式(For).md"],"面向对象":["自定义类.md"],"_root":["0-项目介绍.md","1-Safe（安全）.md","10-行业动态.md","2-Performance（性能优化）.md","2.1-Perfomance 参数.md","2.2-Perfomance资源加载顺序.md","2.2-Performance-CSS.md","2.2-Performance-GZIP.md","2.3-Performance-Web Worker.md","3-SEO（搜索排名）.md","5-Case Websocket.md","5-Case 音视频处理.md","5-Case （项目案例）.md","5-Case1怎么开发一封前端高质量邮件信息.md","5-Case2虚拟列表实现原理.md","5-Case3断点续传问题.md","5-Case代码高亮.md","5-Case富文本Quill.md","6-登陆逻辑 & 后端鉴权.md","7-微前端Qiankun.md","8-Google 插件.md","8-Shopify App 开发.md","8-小程序 Taro.md","9-SSR Next.md","langchain & Autogen.md","开源项目.md"],"0-调试与监控":["webview调试.md","线上监控与排查工具.md"],"10-小游戏":["0-小游戏平台总览.md","1-Cocos Creator 基础.md","2-Cocos 性能优化.md","3-微信小游戏.md","4-抖音小游戏.md","5-跨端适配与工程实践.md"]};
 
   let catalog = {};
   let flatList = [];
@@ -852,23 +1293,86 @@
   }
 
   // ===== 主题切换 =====
-  // 初始值已在 <head> 内联脚本中设定，此处只负责切换与持久化
-  function toggleTheme() {
-    const root = document.documentElement;
-    const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    root.setAttribute("data-theme", next);
+  // 初始值已在 <head> 内联脚本中设定（那里有一份同样的 id 清单用于校验，
+  // 增删主题时两处都要改）。色卡三色 = 纸面 / 主色 / 正文，与 CSS 变量对应。
+  const THEMES = [
+    { id: "light",    name: "素笺",   tag: "01", dark: false, sw: ["#eceae2", "#7a5c34", "#33302a"] },
+    { id: "minimal",  name: "极简",   tag: "02", dark: false, sw: ["#faf9f7", "#8b5e3c", "#252525"] },
+    { id: "tech",     name: "清爽",   tag: "03", dark: false, sw: ["#ffffff", "#2563eb", "#172033"] },
+    { id: "vintage",  name: "复古",   tag: "04", dark: false, sw: ["#f5f1e8", "#3f5d4a", "#292b25"] },
+    { id: "soft",     name: "日系",   tag: "05", dark: false, sw: ["#fcfbf7", "#718a9a", "#34383d"] },
+    { id: "midnight", name: "夜阑",   tag: "06", dark: true,  sw: ["#111315", "#f59e0b", "#e8e6e1"] },
+    { id: "dark",     name: "墨夜",   tag: "07", dark: true,  sw: ["#1c1a17", "#c9a86f", "#ddd8cc"] },
+  ];
+
+  const DEFAULT_LIGHT = "light";
+  const DEFAULT_DARK = "midnight";
+
+  function currentTheme() {
+    const id = document.documentElement.getAttribute("data-theme");
+    return THEMES.find(t => t.id === id) || THEMES[0];
+  }
+
+  function applyTheme(id) {
+    if (!THEMES.some(t => t.id === id)) return; // 不信任外部传入的 id
+    document.documentElement.setAttribute("data-theme", id);
     try {
-      localStorage.setItem("theme", next);
+      localStorage.setItem("theme", id);
     } catch (e) {
       // 隐私模式下写入失败不影响本次切换效果
     }
+    renderThemeMenu();
   }
+
+  function renderThemeMenu() {
+    const menu = document.getElementById("themeMenu");
+    const label = document.getElementById("themeLabel");
+    if (!menu) return;
+    const cur = currentTheme();
+    if (label) label.textContent = cur.name;
+    menu.innerHTML = THEMES.map(t => `
+      <button class="theme-opt" role="menuitemradio" aria-checked="${t.id === cur.id}"
+              data-theme-id="${esc(t.id)}" onclick="applyTheme(this.dataset.themeId); closeThemeMenu();">
+        <span class="swatch" aria-hidden="true"><i style="background:${t.sw[0]}"></i><i style="background:${t.sw[1]}"></i><i style="background:${t.sw[2]}"></i></span>
+        <span>${esc(t.name)}</span>
+        <span class="tag">${esc(t.tag)}</span>
+      </button>`).join("");
+  }
+
+  function toggleThemeMenu() {
+    const menu = document.getElementById("themeMenu");
+    menu.classList.contains("open") ? closeThemeMenu() : openThemeMenu();
+  }
+
+  function openThemeMenu() {
+    renderThemeMenu();
+    document.getElementById("themeMenu").classList.add("open");
+    document.getElementById("themeBtn").setAttribute("aria-expanded", "true");
+  }
+
+  function closeThemeMenu() {
+    const menu = document.getElementById("themeMenu");
+    if (!menu) return;
+    menu.classList.remove("open");
+    document.getElementById("themeBtn").setAttribute("aria-expanded", "false");
+  }
+
+  // 点击别处 / Esc 关闭菜单
+  document.addEventListener("click", e => {
+    if (!e.target.closest("#themePicker")) closeThemeMenu();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeThemeMenu();
+  });
+
+  renderThemeMenu();
 
   // 未手动选择过主题时，跟随系统偏好变化
   try {
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => {
       if (!localStorage.getItem("theme")) {
-        document.documentElement.setAttribute("data-theme", e.matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", e.matches ? DEFAULT_DARK : DEFAULT_LIGHT);
+        renderThemeMenu();
       }
     });
   } catch (e) { /* 老浏览器不支持 addEventListener on MediaQueryList */ }
@@ -887,27 +1391,79 @@
     "protected","readonly","static"
   ]);
 
-  // 输入是 marked 转义后的 HTML 文本。单趟扫描：注释/字符串优先整体消费，
-  // 其余片段再着色，确保生成的标签不会被后续规则重复匹配。
+  // 内建对象 / 全局 API：与普通标识符区分，独立配色
+  const BUILTINS = new Set([
+    "console","document","window","Math","JSON","Object","Array","String","Number","Boolean",
+    "Promise","Map","Set","WeakMap","WeakSet","Symbol","Date","RegExp","Error","Proxy","Reflect",
+    "setTimeout","setInterval","requestAnimationFrame","fetch","localStorage","sessionStorage",
+    "process","module","exports","require","globalThis"
+  ]);
+
+  // 输入是 marked 转义后的 HTML 文本（`<` 已转成 `&lt;`）。单趟扫描：
+  // 注释/字符串/标签这类「整体消费」的规则排在前面，确保生成的 <span>
+  // 标签不会被后续规则二次匹配破坏。
   const TOKENIZER = new RegExp([
-    "(\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)",              // 1 注释
-    "(&#39;[\\s\\S]*?&#39;|&quot;[\\s\\S]*?&quot;|`[\\s\\S]*?`)", // 2 字符串
-    "(\\b\\d+(?:\\.\\d+)?\\b)",                            // 3 数值
-    "([A-Za-z_$][\\w$]*)"                                  // 4 标识符（关键字/函数名）
-  ].join("|"), "g");
+    // 1 注释：JS 行注释 / 块注释（含 CSS）/ HTML 注释
+    "(\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/|&lt;!--[\\s\\S]*?--&gt;)",
+    // 2 HTML 标签：整体消费，回调内再拆标签名与属性。
+    //   属性值转义后含 `&quot;`，故标签体不能简单排除 `&`，
+    //   改为「非 &lt;/&gt; 的实体或普通字符」逐个吞，避免跨越标签边界。
+    //   标签体限定为「空 / 自闭合 / 空白起头的属性串」，
+    //   使 TS 泛型 `&lt;T extends string&gt;` 不被误判为标签（其后无 = 且非空白起头）。
+    "(&lt;\\/[a-zA-Z][\\w-]*&gt;|&lt;[a-zA-Z][\\w-]*(?:\\s(?:(?!&gt;|&lt;)[\\s\\S])*?)?\\/?&gt;)",
+    // 3 字符串
+    "(&#39;[\\s\\S]*?&#39;|&quot;[\\s\\S]*?&quot;|`[\\s\\S]*?`)",
+    // 4 CSS 选择器：类 / ID / 伪类。
+    //   前置 (?<![\w$)\]]) 排除成员访问：`console.log` 的 `.log` 紧跟标识符，
+    //   而 CSS 选择器只出现在行首或空白之后。
+    "((?<![\\w$)\\]])[.#][a-zA-Z_-][\\w-]*|::?[a-zA-Z-]+(?=[\\s{,:)]))",
+    // 5 CSS 属性名：行首标识符后紧跟冒号
+    "(^[ \\t]*[a-z-]+(?=\\s*:))",
+    // 6 数值（含 CSS 单位与十六进制色值）
+    "(#[0-9a-fA-F]{3,8}\\b|\\b\\d+(?:\\.\\d+)?(?:px|em|rem|%|vh|vw|s|ms|fr|deg)?\\b)",
+    // 7 标识符（关键字 / 内建 / 函数名）
+    "([A-Za-z_$][\\w$-]*)",
+    // 8 运算符与标点
+    "([+\\-*/%=!&lt;&gt;?:;,.|&amp;^~]+|[（）(){}\\[\\]])"
+  ].join("|"), "gm");
+
+  // HTML 标签内部：标签名、属性名、属性值分别着色
+  function highlightTag(tag) {
+    // 顺序敏感：标签名规则必须排在通用实体规则之前，否则 `&lt;` 会被
+    // 实体规则先吞掉，导致标签名退化成无值属性。
+    // 通用实体（&gt; &amp;…）仍须整体消费，否则其中的 gt/amp 字母会被
+    // 当成属性名包上 <span>，把实体拆坏成字面量。
+    return tag.replace(
+      /(&lt;\/?)([a-zA-Z][\w-]*)|([a-zA-Z-]+)(=)(&quot;(?:(?!&quot;)[\s\S])*?&quot;|&#39;(?:(?!&#39;)[\s\S])*?&#39;|"[^"]*"|'[^']*')|(&[a-z]+;|&#\d+;)|([a-zA-Z-]+)/g,
+      (m, open, name, attr, eq, val, ent, bare) => {
+        if (name) return `${open}<span class="tk-tag">${name}</span>`;
+        if (attr) return `<span class="tk-attr">${attr}</span>${eq}<span class="tk-str">${val}</span>`;
+        if (ent) return ent;
+        // 无值属性（required / disabled 等）
+        if (bare) return `<span class="tk-attr">${bare}</span>`;
+        return m;
+      }
+    );
+  }
 
   function highlight(escaped) {
-    return escaped.replace(TOKENIZER, (m, com, str, num, ident, offset, full) => {
+    return escaped.replace(TOKENIZER, (m, com, tag, str, sel, prop, num, ident, op, offset, full) => {
       if (com) return `<span class="tk-com">${com}</span>`;
+      if (tag) return highlightTag(tag);
       if (str) return `<span class="tk-str">${str}</span>`;
+      if (sel) return `<span class="tk-sel">${sel}</span>`;
+      // CSS 属性名带前导空白，缩进须原样保留
+      if (prop) return prop.replace(/([a-z-]+)$/, '<span class="tk-prop">$1</span>');
       if (num) return `<span class="tk-num">${num}</span>`;
       if (ident) {
         if (KEYWORDS.has(ident)) return `<span class="tk-key">${ident}</span>`;
+        if (BUILTINS.has(ident)) return `<span class="tk-builtin">${ident}</span>`;
         // 后接左括号则视为函数调用/定义
         if (/^\s*\(/.test(full.slice(offset + ident.length))) {
           return `<span class="tk-fn">${ident}</span>`;
         }
       }
+      if (op) return `<span class="tk-op">${op}</span>`;
       return m;
     });
   }
@@ -965,6 +1521,351 @@
     document.getElementById("sidebar").classList.add("show"); // 移动端同时拉出侧栏
   }
 
+  // ===== 思维导图 =====
+  // 逐层下钻：每次只画「当前层」的一张放射图，点节点就把它变成新的中心。
+  // 早先试过在总图上就地展开分类，但算法类 111 篇会让标签缩到 6px 不可读；
+  // 下钻后每层节点数都在 20 上下，字号得以保持。
+  //   第 0 层：全部分类（16）
+  //   第 1 层：某分类的子目录 + 根层级文档
+  //   第 2 层：某子目录内的文档
+  const MM = {
+    path: [],        // 下钻路径：[] | [cat] | [cat, subdir]
+    scale: 1,
+    tx: 0,
+    ty: 0,
+    W: 1200,         // viewBox 逻辑尺寸，实际显示由 CSS 拉伸
+    H: 800
+  };
+
+  const MM_RING_R = 250;  // 放射环半径
+
+  // 当前层要画的节点。统一返回 {kind, label, sub, key?, path?}，
+  // 让渲染只关心画什么，不关心自己处在哪一层。
+  //   kind: "cat" 可下钻分类 | "dir" 可下钻子目录 | "doc" 叶子文档
+  function mmNodes() {
+    const [cat, dir] = MM.path;
+
+    // 第 0 层：全部分类
+    if (!cat) {
+      return Object.keys(catalog).map(key => ({
+        kind: "cat",
+        key,
+        label: CAT_NAMES[key] || key,
+        sub: String(catalog[key].length)
+      }));
+    }
+
+    const files = catalog[cat] || [];
+
+    // 第 2 层：子目录内的文档
+    if (dir) {
+      return files
+        .filter(f => f.startsWith(dir + "/"))
+        .map(f => ({
+          kind: "doc",
+          label: displayName(f.slice(dir.length + 1)),
+          path: cat === "_root" ? f : `${cat}/${f}`
+        }));
+    }
+
+    // 第 1 层：子目录聚合成一个可下钻节点，根层级文档直接作为叶子
+    const dirs = new Map(); // 保持 catalog 中首次出现的顺序
+    const out = [];
+    for (const f of files) {
+      const i = f.lastIndexOf("/");
+      if (i < 0) {
+        out.push({ kind: "doc", label: displayName(f), path: cat === "_root" ? f : `${cat}/${f}` });
+      } else {
+        const d = f.slice(0, i);
+        dirs.set(d, (dirs.get(d) || 0) + 1);
+      }
+    }
+    // 子目录排在根层级文档之前，与侧栏 sortFiles 的「先根后目录」相反 ——
+    // 这里子目录是入口而非内容，放前面更符合「先选范围再选文档」的查找习惯
+    return [
+      ...[...dirs].map(([d, n]) => ({ kind: "dir", key: d, label: displayName(d), sub: String(n) })),
+      ...out
+    ];
+  }
+
+  // 当前层的中心节点文案
+  function mmCenter() {
+    const [cat, dir] = MM.path;
+    if (!cat) return { title: "前端八股", sub: `${flatList.length} 篇` };
+    if (!dir) return { title: CAT_NAMES[cat] || cat, sub: `${(catalog[cat] || []).length} 篇` };
+    return { title: displayName(dir), sub: `${mmNodes().length} 篇` };
+  }
+
+  // 文档标签太长会盖住邻居，截断显示，完整名放 <title>
+  function mmTrim(s, max) {
+    return s.length > max ? s.slice(0, max - 1) + "…" : s;
+  }
+
+  // 贝塞尔连线：从 (x1,y1) 到 (x2,y2)，控制点取中点偏移，画出柔和的弧
+  function mmCurve(x1, y1, x2, y2) {
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    return `M${x1.toFixed(1)},${y1.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+  }
+
+  // fit=true 时渲染后自动缩放到适合视野（展开/收起分类、首次打开）
+  function renderMindmap(fit = false) {
+    const svg = document.getElementById("mmSvg");
+    if (!svg) return;
+
+    const cx = MM.W / 2;
+    const cy = MM.H / 2;
+    const items = mmNodes();
+    if (!items.length) return;
+
+    let links = "";
+    let nodes = "";
+
+    // 单环装不下就分两圈：环顶/环底的标签近乎水平排列，靠撑大半径来拉开行距
+    // 收效甚微（leetcode 65 篇实测仍有 17 处压字），分环能直接把密度减半。
+    const RING_MAX = 26;                                  // 单环最多容纳的节点数
+    const rings = Math.min(3, Math.ceil(items.length / RING_MAX));
+    const perRing = Math.ceil(items.length / rings);
+    // 间距按弧长算，但真正决定是否压字的是垂直行距，故留出 44 的余量
+    const base = Math.max(MM_RING_R, (44 * perRing) / (Math.PI * 2));
+
+    items.forEach((it, i) => {
+      const r = i % rings;                                // 轮流分配到内/外环
+      const idx = Math.floor(i / rings);                  // 该节点在本环内的序号
+      // 本环实际节点数：前 (总数 % 环数) 个环各多分到 1 个
+      const count = Math.floor(items.length / rings) + (r < items.length % rings ? 1 : 0);
+      const ring = base + r * 132;                        // 外环再推远，留出标签空间
+      // 均分整圆，从正上方（-90°）开始；外环整体偏移半格，与内环标签错开
+      const ang = (idx / count) * Math.PI * 2 - Math.PI / 2 + (r / rings) * (Math.PI * 2 / count);
+      const x = cx + Math.cos(ang) * ring;
+      const y = cy + Math.sin(ang) * ring * 0.82;         // 压成横向椭圆，贴合 3:2 画布
+      // 左半边的标签右对齐并画在节点左侧，避免文字越过节点伸向画布外
+      const left = Math.cos(ang) < -0.01;
+      const anchor = left ? "end" : "start";
+      const dx = left ? -11 : 11;
+      const isDoc = it.kind === "doc";
+      const isActive = isDoc && currentIndex >= 0 && flatList[currentIndex] && flatList[currentIndex].path === it.path;
+
+      links += `<path class="mm-link${isDoc ? "" : " branch"}" d="${mmCurve(cx, cy, x, y)}"/>`;
+
+      // 可下钻节点带计数，叶子不带
+      const attr = isDoc
+        ? `data-path="${esc(it.path)}"`
+        : `data-drill="${esc(it.key)}"`;
+      const cls = isDoc ? "mm-leaf" : "mm-cat";
+      const title = isDoc ? it.label : `${it.label} · ${it.sub} 篇（点击展开）`;
+      const cnt = isDoc ? "" : ` <tspan class="mm-cnt">${esc(it.sub)}</tspan>`;
+
+      nodes += `<g class="mm-node ${cls}${isActive ? " active" : ""}" ${attr} role="button" tabindex="0">
+        <title>${esc(title)}</title>
+        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDoc ? 3.5 : 6}"/>
+        <text x="${(x + dx).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}">${esc(mmTrim(it.label, 24))}${cnt}</text>
+      </g>`;
+    });
+
+    // 中心节点：非顶层时点击返回上一层
+    const c = mmCenter();
+    const back = MM.path.length > 0;
+    // 顶层没有上一层可返回，此时中心只是标题：去掉 button 语义与焦点，
+    // 免得出现「看着能点、点了没反应」的假可交互
+    nodes += `<g class="mm-node mm-hub${back ? "" : " mm-hub-static"}" ${back ? 'data-hub="1" role="button" tabindex="0"' : 'aria-hidden="true"'}>
+      <title>${back ? "返回上一层" : "全部分类"}</title>
+      <circle cx="${cx}" cy="${cy}" r="46"/>
+      <text x="${cx}" y="${cy - (back ? 12 : 6)}" text-anchor="middle" font-size="${c.title.length > 8 ? 12 : 15}">${esc(mmTrim(c.title, 11))}</text>
+      <text x="${cx}" y="${cy + 6}" text-anchor="middle" font-size="10" class="mm-hub-sub">${esc(c.sub)}</text>
+      ${back ? `<text x="${cx}" y="${cy + 24}" text-anchor="middle" font-size="10" class="mm-hub-sub">← 返回</text>` : ""}
+    </g>`;
+
+    svg.setAttribute("viewBox", `0 0 ${MM.W} ${MM.H}`);
+    svg.innerHTML = `<g id="mmRoot" transform="translate(${MM.tx} ${MM.ty}) scale(${MM.scale})" transform-origin="${cx} ${cy}">${links}${nodes}</g>`;
+    if (fit) mmFit();
+  }
+
+  // 展开外圈分类时，扇形会伸到画布外（右侧分类尤其明显）。
+  // 用实际渲染包围盒回算缩放与平移，把内容收进视野 —— 必须在 innerHTML 之后取，
+  // 因为 getBBox 只对已插入文档的元素有效。
+  function mmFit() {
+    const svg = document.getElementById("mmSvg");
+    const root = document.getElementById("mmRoot");
+    if (!svg || !root) return;
+
+    // 先归零变换再量，否则量到的是上一次缩放后的尺寸
+    root.setAttribute("transform", "");
+    let box;
+    try {
+      box = root.getBBox();
+    } catch (e) {
+      return; // 未布局（如面板隐藏）时 getBBox 会抛错，跳过自适应
+    }
+    if (!box.width || !box.height) return;
+
+    const pad = 48;
+    const scale = Math.min(
+      (MM.W - pad * 2) / box.width,
+      (MM.H - pad * 2) / box.height,
+      1.6 // 内容很小时不要放得过大
+    );
+    // 下限 0.75：算法类 111 篇若一味缩到全部入画，字号会小到不可读。
+    // 宁可让边缘溢出、由用户拖动查看，也不要牺牲可读性。
+    MM.scale = Math.max(0.75, scale);
+    // 把包围盒中心对齐到画布中心：先按 transform-origin(cx,cy) 缩放，再补平移
+    const cx = MM.W / 2;
+    const cy = MM.H / 2;
+    const bcx = box.x + box.width / 2;
+    const bcy = box.y + box.height / 2;
+    MM.tx = cx - (cx + (bcx - cx) * MM.scale);
+    MM.ty = cy - (cy + (bcy - cy) * MM.scale);
+    mmApply();
+  }
+
+  // 事件委托：节点是每次渲染重建的，绑在 svg 上避免反复解绑
+  async function mmActivate(target) {
+    const leaf = target.closest(".mm-leaf");
+    if (leaf) {
+      // 等文档真正加载完再关脑图：加载失败时留在脑图，用户还能点别的节点，
+      // 否则会停在一张错误页而失去返回入口
+      const ok = await loadDoc(leaf.dataset.path);
+      if (ok) toggleMindmap(false);
+      return;
+    }
+    const drill = target.closest("[data-drill]");
+    if (drill) {
+      MM.path = [...MM.path, drill.dataset.drill]; // 进入下一层
+      renderMindmap(true);
+      return;
+    }
+    // 中心节点 = 返回上一层；已在顶层时无动作（此时它不可点，见 renderMindmap）
+    if (target.closest(".mm-hub") && MM.path.length) {
+      MM.path = MM.path.slice(0, -1);
+      renderMindmap(true);
+    }
+  }
+
+  function initMindmapEvents() {
+    const svg = document.getElementById("mmSvg");
+    if (!svg) return;
+
+    svg.addEventListener("click", e => mmActivate(e.target));
+    svg.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        mmActivate(e.target);
+      }
+    });
+
+    // 滚轮缩放
+    svg.addEventListener("wheel", e => {
+      e.preventDefault();
+      mmZoom(e.deltaY < 0 ? 1.12 : 0.89, e.clientX, e.clientY);
+    }, { passive: false });
+
+    // 拖动平移：记录按下时的指针位置与当时的偏移，移动时求差值。
+    // 关键是 DRAG_MIN 阈值 —— 点击时手抖 2~3px 很常见，没有阈值的话
+    // 每次点节点都会顺带把画布挪走，且 click 落点偏移后可能打不中节点。
+    const DRAG_MIN = 4;
+    let down = false;    // 指针已按下（尚未确定是点击还是拖动）
+    let moved = false;   // 已越过阈值，判定为拖动
+    let sx = 0, sy = 0, ox = 0, oy = 0;
+
+    svg.addEventListener("pointerdown", e => {
+      if (e.button !== 0 && e.pointerType === "mouse") return; // 只响应左键
+      down = true; moved = false;
+      sx = e.clientX; sy = e.clientY;
+      ox = MM.tx; oy = MM.ty;
+    });
+
+    svg.addEventListener("pointermove", e => {
+      if (!down) return;
+      const dx = e.clientX - sx;
+      const dy = e.clientY - sy;
+      if (!moved) {
+        if (Math.hypot(dx, dy) < DRAG_MIN) return; // 阈值内视为点击，不动画布
+        moved = true;
+        svg.classList.add("dragging");
+        // 越过阈值才捕获指针：过早捕获会让 click 的 target 变成 svg 而非节点
+        try { svg.setPointerCapture(e.pointerId); } catch (err) { /* 不支持则退化为普通拖动 */ }
+      }
+      // 指针位移是屏幕像素，换算回 viewBox 逻辑坐标才不会「拖不动」或「跟手过快」
+      const rect = svg.getBoundingClientRect();
+      const k = MM.W / (rect.width || MM.W);
+      MM.tx = ox + dx * k;
+      MM.ty = oy + dy * k;
+      mmApply();
+    });
+
+    const endDrag = e => {
+      if (!down) return;
+      down = false;
+      svg.classList.remove("dragging");
+      if (moved) {
+        try { svg.releasePointerCapture(e.pointerId); } catch (err) { /* 指针已释放 */ }
+      }
+    };
+    svg.addEventListener("pointerup", endDrag);
+    svg.addEventListener("pointercancel", endDrag);
+
+    // 拖动结束后浏览器仍会补发 click，此时不应触发节点动作
+    svg.addEventListener("click", e => {
+      if (moved) { e.stopPropagation(); moved = false; }
+    }, true); // 捕获阶段，先于下方的节点 click 处理
+  }
+
+  // 把当前 transform 写回 DOM。缩放锚点固定为画布中心（transform-origin 同值），
+  // 平移与缩放共用这一处，避免各处拼接字符串时写法漂移。
+  function mmApply() {
+    const root = document.getElementById("mmRoot");
+    if (root) root.setAttribute("transform", `translate(${MM.tx} ${MM.ty}) scale(${MM.scale})`);
+  }
+
+  // cx/cy 为可选的缩放锚点（屏幕坐标）。滚轮缩放传入指针位置，
+  // 使指针下的内容保持不动 —— 否则放大时目标会往外跑，得反复拖回来。
+  function mmZoom(factor, cx, cy) {
+    const prev = MM.scale;
+    MM.scale = Math.min(3, Math.max(0.4, prev * factor));
+    const k = MM.scale / prev;
+    if (k !== 1 && cx !== undefined) {
+      const svg = document.getElementById("mmSvg");
+      const rect = svg.getBoundingClientRect();
+      if (rect.width) {
+        // 换算到 viewBox 坐标系，再以「原点固定在画布中心」求补偿平移
+        const s = MM.W / rect.width;
+        const px = (cx - rect.left) * s - MM.W / 2;
+        const py = (cy - rect.top) * s - MM.H / 2;
+        MM.tx = px - (px - MM.tx) * k;
+        MM.ty = py - (py - MM.ty) * k;
+      }
+    }
+    mmApply();
+  }
+
+  function mmReset() {
+    MM.scale = 1; MM.tx = 0; MM.ty = 0;
+    renderMindmap(true);
+  }
+
+  // force 省略时为切换；传 false 强制关闭（点开文档后回到正文）
+  function toggleMindmap(force) {
+    const pane = document.getElementById("mindmap");
+    const content = document.getElementById("content");
+    const btn = document.getElementById("mapBtn");
+    const show = force === undefined ? !pane.classList.contains("show") : force;
+
+    pane.classList.toggle("show", show);
+    content.style.display = show ? "none" : "";
+    btn.classList.toggle("active", show);
+    btn.setAttribute("aria-pressed", String(show));
+
+    if (show) {
+      // 默认下钻到当前正在读的文档所在层，脑图一打开就能看到自己在哪
+      if (!MM.path.length && currentIndex >= 0 && flatList[currentIndex]) {
+        const { cat, file } = flatList[currentIndex];
+        const i = file.lastIndexOf("/");
+        MM.path = i < 0 ? [cat] : [cat, file.slice(0, i)];
+      }
+      renderMindmap(true);
+    }
+  }
+
   // ===== 加载文档 =====
   async function loadDoc(path) {
     const contentEl = document.getElementById("content");
@@ -1000,8 +1901,19 @@
       // 移动端关闭侧边栏
       document.getElementById("sidebar").classList.remove("show");
 
+      return true; // 供调用方判断是否成功（脑图据此决定要不要关闭）
+
     } catch (e) {
-      contentEl.innerHTML = `<div class="load-error">无法加载文档：${esc(path)}</div>`;
+      // file:// 下 fetch 本地文件被 CORS 拦截，目录能靠 INLINE_CATALOG 显示、正文却全部打不开。
+      // 这是最常见的「内容打不开」原因，单独给出可操作的提示，不要只报一句失败。
+      const isFileProtocol = location.protocol === "file:";
+      const hint = isFileProtocol
+        ? `<p>检测到当前以 <code>file://</code> 直接打开，浏览器会拦截本地文件读取，因此正文无法载入。</p>
+           <p>请改用本地服务器访问：在项目目录执行 <code>python3 -m http.server 8080</code>，然后打开 <code>http://localhost:8080</code>。</p>`
+        : `<p>请确认文件存在于 <code>docs/</code> 目录下，或刷新页面重试。</p>
+           <p class="reason">原因：${esc(e && e.message ? e.message : String(e))}</p>`;
+      contentEl.innerHTML = `<div class="load-error"><strong>无法加载文档：${esc(path)}</strong>${hint}</div>`;
+      return false;
     }
   }
 
@@ -1050,6 +1962,7 @@
     document.getElementById("sidebar").classList.toggle("show");
   });
 
+  initMindmapEvents();
   init();
 </script>
 
