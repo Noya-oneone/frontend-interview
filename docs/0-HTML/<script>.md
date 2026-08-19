@@ -1,88 +1,98 @@
+# `<script>` 标签
 
-## `<script>` 标签
+## 属性一览
 
-| 属性         | 默认值     | 描述                                     |
-|--------------|------------|------------------------------------------|
-| **src**      | 空         | 指定外部 JavaScript 文件的 URL。          |
-| **type**     | `"text/javascript"` | 指定脚本的 MIME 类型。                |
-| **defer**    | `false`    | 延迟执行脚本，直到文档解析完成。            |
-| **async**    | `false`    | 异步执行脚本，脚本一旦加载完成立即执行。      |
-| **charset**  | 文档的默认字符集 | 指定外部脚本文件的字符编码。               |
-| **nomodule** | `false`    | 指示脚本在不支持 ES6 模块的浏览器中不执行。   |
-| **crossorigin** | 无      | 控制对外部脚本文件的跨域请求。             |
-| **integrity** | 无        | 提供用于验证请求资源完整性的哈希值。        |
-| **referrerpolicy** | 无  | 设置获取外部脚本时的引用者信息策略。         |
+| 属性 | 描述 |
+|--|--|
+| **src** | 外部脚本 URL |
+| **type** | 省略或 `text/javascript` 为普通脚本；`module` 为 ES 模块；`importmap` / `application/json` 等为数据块 |
+| **defer** | 并行下载，`HTML 解析完成后、DOMContentLoaded 之前`按文档顺序执行 |
+| **async** | 并行下载，`下载完立即执行`（可能打断解析），顺序不保证 |
+| **nomodule** | 支持 ES 模块的浏览器`跳过`该脚本（老浏览器降级方案） |
+| **crossorigin** | 控制跨域请求是否带凭据，配合 SRI 使用 |
+| **integrity** | SRI 哈希，校验资源未被篡改 |
+| **referrerpolicy** | 请求脚本时的 Referer 策略 |
+| **nonce** | CSP 下的一次性执行凭证 |
 
-### defer 和 async 属性
+> `charset` 属性已废弃：外部脚本编码由 HTTP 头决定。
 
-| 属性 | 描述 | 执行顺序 | 
-|------------|-------|---------|
-| **`defer`**| `延迟执行`，脚本在文档解析完成后执行| 脚本按照它们在文档中的出现顺序执行|
-| **`async`**| `异步加载`，脚本一旦加载完成立即执行| 脚本的执行顺序不一定与文档中的顺序一致，可能会并行执行 |
+## defer vs async（高频考点）
 
-* HTML解析 （浏览器一边解析 HTML 文档，一边构建 DOM 树）
-* CSS解析 （CSS 解析完成后，浏览器会生成 CSSOM）
-* 渲染树构建 （DOM和CSSDOM 树都生成完后，结合生成渲染树）
-* JavaScript执行
+普通 `<script>`（无属性）：解析到它时`暂停 HTML 解析`，下载 + 执行完才继续 —— 这就是「JS 阻塞解析」。
 
-* `影响 JavaScript`：虽然 CSS 加载不会直接阻塞 JavaScript 执行，但在 CSS 加载完成之前，浏览器会延迟渲染页面内容。这可能会影响到 JavaScript `操作 DOM 的时机`，因为 JavaScript 可能会在 CSS `加载完成之前`对 DOM 进行操作，造成样式不一致。
+| | 下载 | 执行时机 | 顺序 |
+|--|--|--|--|
+| **defer** | 与解析并行 | HTML 解析完成后、`DOMContentLoaded` 事件前 | `按文档顺序` |
+| **async** | 与解析并行 | `下载完成立即执行`，可能打断解析 | 谁先下载完谁先执行，`与 DOMContentLoaded 无固定先后` |
 
+* `defer` 适合`依赖 DOM、有相互依赖顺序`的业务脚本。
+* `async` 适合`彼此独立`的脚本：统计埋点、广告、监控 SDK。
+* 同时写 `async` 和 `defer` 时按 `async` 处理（defer 仅作为不支持 async 的老浏览器降级）。
+* `defer / async` 只对`外部脚本`有效，内联脚本上无效（`type="module"` 的内联脚本除外，天然 defer）。
+* 不用属性的稳妥老办法：把 `<script>` 放到 `</body>` 前，解析不被阻塞、无顺序问题。
 
-* `渲染树`：在 DOM 树和 CSSOM 树都生成完成后，浏览器将它们合并生成渲染树。渲染树的构建是顺序进行的，必须在 DOM 和 CSSOM 完成之后才能进行。
-* `JavaScript 执行：`
-    * `同步脚本`： 如果 JavaScript 脚本在 HTML 的 `<head>` 部分，浏览器会在`解析 HTML 时暂停`，执行脚本。这个过程是阻塞的，可能影响 DOM 和 CSSOM 的解析。
-    * `异步脚本`：如果使用 async 或 defer 属性，脚本的下载和执行可以并行进行，但 defer 脚本会在 HTML 解析完成后执行，async 脚本会在下载完成后立即执行。
-
-* 用这两个属性去解决javascript脚本阻塞问题，最稳妥的方法就是将script放到body的底部，没有兼容性问题，也不会因此产生白屏问题，没有执行顺序的问题
-* defer 和 async 是 `<script>` 标签的可选属性，而不是必须属性。它们的主要作用是控制外部 JavaScript 文件的加载和执行方式
-* defer 适用于需要在 `DOM 完全加载后执行的脚本`，而 async 则适用于独立的脚本，如`第三方分析工具或广告脚本`
-*  同时使用 defer 和 async 属性在一个 `<script>` 标签上是无效的，因为这两个属性的行为是`互斥的`。
-
-### nonce 属性
-* `nonce（number used once）` 是一个随机生成的唯一字符串，用于确保脚本在安全的内容安全策略（CSP）下执行。它的主要作用是防止跨站脚本攻击（XSS），确保只有被明确允许的脚本才能执行。
-
-在 CSP 中，nonce 的用法如下：
-* 在服务器端生成 nonce：每次请求都会生成一个唯一的 nonce。
-在 HTTP 响应头中设置 CSP：指定允许带有特定 nonce 的脚本执行，例如：Content-Security-Policy: script-src 'self' 'nonce-<random-value>'。
-* 在 HTML 中使用 nonce：在每个需要执行的 `<script>` 标签中添加相应的 nonce 属性，例如：<script nonce="<random-value>">.
-* 在 React 应用中，通常会`从服务器端传递 nonce` 并在组件中使用它
-
-'unsafe-inline'：允许执行页面内嵌的&lt;script>标签和事件监听函数
-unsafe-eval：允许将字符串当作代码执行，比如使用eval、setTimeout、setInterval和Function等函数。
-nonce值：每次HTTP回应给出一个授权token，页面内嵌脚本必须有这个token，才会执行
-hash值：列出允许执行的脚本代码的Hash值，页面内嵌脚本的哈希值只有吻合的情况下，才能执行。
-
-### crossorigin 属性
-| crossorigin | 描述|
-|---------------|---|
-| `anonymous`   | 不包含用户凭据（如 cookies 或 HTTP 认证信息）进行跨域请求。|
-| `use-credentials` | 包含用户凭据进行跨域请求。|
-| 无            | 不启用 CORS 跨域请求，按照浏览器的默认行为处理。|
-
-### 示例
-
-1. **`anonymous`** 
-* 用途：适用于需要从不同域加载资源，但不需要发送用户凭据的场景
-* 典型应用：加载公共库或 CDN 上的 JavaScript 文件。
-```html
-<script src="https://example.com/script.js" crossorigin="anonymous"></script>
-```
-
-2. **`use-credentials`**
-* 用途：适用于需要从不同域加载资源，并且需要发送用户凭据（如 cookies 或 HTTP 认证信息）的场景。
-* 典型应用：加载需要用户认证的跨域资源。
-```html
-<script src="https://example.com/script.js" crossorigin="use-credentials"></script>
-```
-
-webpack-subresource-integrity 插件 打包工具生成integrity的值
-
-* 结合 SRI 使用 crossorigin 属性，可以有效防止资源被篡改，确保应用的安全性。
-* crossorigin 属性常与 SRI（Subresource Integrity）一起使用，以确保加载的外部脚本的内容未被篡改。
-* **SRI 验证**：SRI 使用哈希值验证资源的完整性。当资源加载时，浏览器会计算资源的哈希值并与提供的**哈希值进行对比**。如果哈希值不匹配，资源将不会加载，**避免加载被篡改的脚本**。
-* crossorigin 属性：跨域请求需要 CORS 头来**允许资源的跨域加载**。当使用 SRI 时，浏览器**需要通过 CORS 请求来获取资源的哈希值**。这就需要 crossorigin 属性来处理跨域请求。
+### type="module"
 
 ```html
-<script src="https://example.com/script.js" integrity="sha384-oqVuAfXRKap7fdgcCY5uykM6+R9GqQ8K/ux4S+QwnV49e6JARgxVbboE3Q/niyfb" crossorigin="anonymous"></script>
+<script type="module" src="main.js"></script>
 ```
 
+* 默认具有 `defer` 行为；加 `async` 则下载完立即执行。
+* 自带严格模式、独立模块作用域，跨域加载必须服务端开 CORS。
+
+## 与渲染流水线的关系
+
+1. HTML 解析 → 构建 `DOM 树`（遇到同步脚本会暂停）。
+2. CSS 解析 → 构建 `CSSOM`。
+3. DOM + CSSOM 合成`渲染树`，再布局、绘制。
+4. CSS 不阻塞 DOM 解析，但`阻塞渲染`，也会`阻塞后续同步脚本的执行`（脚本可能读样式，必须等 CSSOM 就绪）—— 所以「CSS 放头部、JS 放底部或加 defer」。
+
+## nonce 属性与 CSP
+
+`nonce`（number used once）是服务端每次响应`随机生成的一次性令牌`，配合 CSP 白名单内联脚本，防 XSS：
+
+```
+Content-Security-Policy: script-src 'self' 'nonce-r4nd0m'
+```
+
+```html
+<script nonce="r4nd0m">/* 只有 nonce 匹配才允许执行 */</script>
+```
+
+CSP `script-src` 相关取值：
+
+| 值 | 含义 |
+|--|--|
+| `'unsafe-inline'` | 放行所有内联脚本与事件属性（等于放弃防护，避免） |
+| `'unsafe-eval'` | 放行 `eval`、`new Function`、字符串版 `setTimeout` |
+| `'nonce-xxx'` | 携带匹配 nonce 的脚本才执行 |
+| `'sha256-xxx'` | 脚本内容哈希匹配才执行 |
+
+## crossorigin 与 SRI
+
+| crossorigin | 描述 |
+|--|--|
+| `anonymous` | 跨域请求`不携带`凭据（cookie / HTTP 认证），最常用 |
+| `use-credentials` | 跨域请求`携带`凭据 |
+| 缺省 | 不启用 CORS；脚本报错信息会被脱敏为 `Script error.`（无法上报详情） |
+
+SRI（Subresource Integrity）确保 CDN 资源`未被篡改`：浏览器下载后计算哈希与 `integrity` 值对比，不匹配则拒绝执行。SRI 校验要求以 CORS 模式请求，所以必须同时写 `crossorigin`：
+
+```html
+<script src="https://cdn.example.com/lib.js"
+        integrity="sha384-oqVuAfXRKap7fdgcCY5uykM6+R9GqQ8K/ux4S+QwnV49e6JARgxVbboE3Q/niyfb"
+        crossorigin="anonymous"></script>
+```
+
+构建侧可用 `webpack-subresource-integrity` 插件自动生成 integrity 值。
+
+## 常见考点
+
+* **为什么监控 SDK 要加 `crossorigin="anonymous"`？** 否则跨域脚本抛错只能拿到 `Script error.`，无法定位。
+* **DOMContentLoaded 和 load 的区别？** 前者在 DOM 树构建完成（defer 脚本执行完）触发；后者等所有资源（图片、iframe）加载完。
+* **动态创建的 script 是 defer 还是 async？** `document.createElement('script')` 插入的脚本默认 `async=true`，需要顺序时手动置 `script.async = false`。
+
+## 拓展阅读
+
+* [MDN - `<script>`](https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/script)
+* [MDN - Subresource Integrity](https://developer.mozilla.org/zh-CN/docs/Web/Security/Subresource_Integrity)

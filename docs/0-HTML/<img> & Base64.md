@@ -1,61 +1,82 @@
-# 图片相关优化
+# `<img>` & Base64
 
+## 图片格式对比
 
-.WebP格式的图片，是Google开发的一种支持有损压缩和无损压缩的图片格式（支持alpha通道和动画） 
+| 格式 | 优点 | 缺点 | 适用场景 |
+|--|--|--|--|
+| **WebP** | 高压缩率，支持有损/无损、透明和动画（Google 开发） | 老旧浏览器不支持（现代浏览器已全面支持） | `现代网页的默认选择` |
+| **AVIF** | 压缩率比 WebP 更高，`支持透明和 HDR` | 兼容性仍在铺开，编解码较慢 | 追求极致体积的现代站点 |
+| **JPEG/JPG** | 高压缩比，适合`色彩丰富`的照片 | `有损压缩`，不支持透明 | 照片类图像 |
+| **PNG** | `无损压缩`，支持透明 | 体积较大 | 需要透明或像素精确的图标、截图 |
+| **GIF** | 支持动画，兼容性极好 | 只有 256 色，体积大 | 简单动图（现多被 WebP/视频替代） |
+| **SVG** | 矢量、无限缩放、`体积小`、可用 CSS/JS 控制 | 不适合表现照片级复杂图像 | 图标、Logo、简单插图 |
 
+### 渐进增强写法
 
-|格式|优点|缺点|适用场景|
-|---|---|---|---|
-|**WebP**|高压缩率，支持透明和动画，图像质量高|浏览器兼容性问题（虽然逐渐改善）|`现代网页图片，透明背景和动画图像`|
-|**AVIF**|高压缩率，`支持透明和高动态范围图像`，图像质量高|浏览器兼容性尚在发展中，编码和解码速度较慢|现代网页图片，高质量和高压缩的图像|
-|**SVG**|矢量图形，支持缩放和编辑，`文件体积小`，支持透明|不适合复杂的图像，文件可能变大|图标、图形、简单插图，响应式设计|
-|**JPEG**|高压缩比，适合`色彩丰富`的照片，文件体积小|`有损压缩`，可能导致图像质量下降|照片和复杂图像，存储和传输|
-|**PNG**|支持`无损压缩`和透明度，高质量图像|文件体积较大，特别是在高分辨率图像中|高质量图像，透明背景，图标和图形|
-|**JPG**|与JPEG相同，常用于网络图片|同JPEG，一般用作文件名的不同|照片和色彩丰富的图像|
-|**GIF**|支持动画，简单透明背景，广泛兼容|色彩深度有限（256色），文件体积大|动画图像和简单的图标|
-
-
-## Base64 编码的原理
-
-* Base64 是一种用于`将二进制数据`转换为`文本格式的编码方式`。
-
-* `兼容性`：Base64 编码将二进制数据转化为 ASCII 字符，确保数据可以在`只支持文本的环境中传输`，如电子邮件、JSON 数据、HTML 和 XML。
-* `数据嵌入`：在网页中嵌入图片（例如使用 Data URI）可以避免额外的 HTTP 请求，提高性能。
-* `安全性`：Base64 编码不是加密方式，但可以隐藏数据内容，提供一定程度的保护，防止直接读取。
-* `传输稳定性`：在某些传输协议中，二进制数据可能会导致数据损坏或不一致，Base64 编码通过转换为文本格式避免了这些问题。
-<!-- Base64 编码本身不会压缩数据，反而会增加数据的大小（通常增加约 33%） -->
-
-
-### 编码过程：
-
-* 将输入的二进制数据分成每组三个字节（24 位）。
-* 将这 24 位数据分成四组，每组 6 位。
-* 将每组 6 位的数据转换为一个对应的 Base64 字符（总共 64 个字符），字符集包括 A-Z、a-z、0-9、+ 和 /。
-* 如果数据不足 3 字节，则使用 = 填充，以确保编码结果的长度是 4 的倍数。
-```js
-const str = 'Hello, World!';
-const encoded = btoa(str); // 转换为 Base64 编码
-console.log(encoded); // 输出: "SGVsbG8sIFdvcmxkIQ=="
+```html
+<picture>
+  <source srcset="photo.avif" type="image/avif" />
+  <source srcset="photo.webp" type="image/webp" />
+  <img src="photo.jpg" alt="产品照片" loading="lazy" width="800" height="600" />
+</picture>
 ```
 
-### 解码过程：
+* `loading="lazy"`：原生懒加载视口外图片。
+* 显式写 `width / height`（或 CSS `aspect-ratio`）：预留占位，避免布局偏移（CLS）。
 
-* 将 Base64 编码的文本转换回 6 位二进制数据。
-* 将这些 6 位数据组合成原始的二进制数据（每三组 6 位为一个字节）。
+## alt 和 title 的区别（高频考点)
 
-```js
-const decoded = atob(encoded); // 从 Base64 编码转换回原始字符串
-console.log(decoded); // 输出: "Hello, World!"
+| | `alt` | `title` |
+|--|--|--|
+| 作用 | 图片`无法显示时的替代文本` | 鼠标悬停时的提示气泡 |
+| 无障碍 | 屏幕阅读器朗读的内容，**必写**（纯装饰图写 `alt=""`） | 辅助技术支持不稳定，不能替代 alt |
+| SEO | 参与图片搜索索引 | 权重可忽略 |
+| 适用元素 | `<img>`、`<area>`、`<input type="image">` | 几乎所有元素 |
+
+## Base64 编码
+
+* Base64 是把`二进制数据`转换为 `64 个可打印 ASCII 字符`文本的编码方式（不是加密、不是压缩）。
+* 用途：在`只支持文本的环境`中传输二进制（JSON、HTML、XML、邮件 MIME）；网页中以 Data URI 内嵌小图，省一次 HTTP 请求。
+* **代价：体积膨胀约 33%**（3 字节变 4 字符），且无法被浏览器单独缓存 —— 只适合内嵌`小图标`，大图得不偿失。
+
+### 编码过程
+
+1. 将二进制数据按`每 3 字节（24 位）`分组。
+2. 24 位拆成 `4 组 × 6 位`。
+3. 每组 6 位映射为一个 Base64 字符（字符集 `A-Z a-z 0-9 + /`）。
+4. 末尾不足 3 字节时用 `=` 填充，保证长度是 4 的倍数。
+
+```ts
+const encoded = btoa('Hello, World!');  // "SGVsbG8sIFdvcmxkIQ=="
+const decoded = atob(encoded);          // "Hello, World!"
+
+// btoa 只接受 Latin-1，含中文需先转码
+const zh = btoa(String.fromCharCode(...new TextEncoder().encode('你好')));
+
+// 文件转 Data URL（常用于图片预览）
+function fileToDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);  // 结果形如 data:image/png;base64,iVBOR...
+  });
+}
 ```
 
 ### 使用场景
 
-* 嵌入小图片
-* 传输二进制数据
-* 邮件附件
-* 数据存储
+* 内嵌小图标 / 字体（Data URI，构建工具通常设 8KB 左右阈值自动内联）
+* 在 JSON / URL 中携带二进制数据
+* 邮件附件（MIME）
 
-base64编码原理
+## 常见考点
 
+* **Base64 是加密吗？** 不是，任何人都能解码；也不是压缩，体积反而 +33%。
+* **什么时候该用 Base64 内嵌图片？** 只有体积小、复用率低的图；大图内嵌会阻塞 HTML/CSS 下载且无法独立缓存。
+* **图片懒加载的实现方式？** 原生 `loading="lazy"`；自定义用 `IntersectionObserver` 进入视口再赋值 `src`。
 
-## Img 的title 和 alt属性区别
+## 拓展阅读
+
+* [MDN - Image file type and format guide](https://developer.mozilla.org/zh-CN/docs/Web/Media/Guides/Formats/Image_types)
+* [MDN - Base64](https://developer.mozilla.org/zh-CN/docs/Glossary/Base64)
