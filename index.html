@@ -604,6 +604,39 @@
   /* 拖动中屏蔽节点 hover，避免指针扫过时标签不停闪烁 */
   .mindmap svg.dragging .mm-node { pointer-events: none; }
 
+  /* 下钻/返回时新一层淡入，给层级切换一点方向感。
+     平移缩放走 transform 不重建 #mmRoot，不会误触发这段动画 */
+  #mmRoot { animation: mm-in 0.22s ease; }
+  @keyframes mm-in { from { opacity: 0; } }
+
+  /* 面包屑：下钻后标出「全部分类 › 分类 › 子目录」，祖先层可点击直达 */
+  .mm-crumb {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+  }
+
+  .mm-crumb button {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    font: inherit;
+    letter-spacing: inherit;
+    color: var(--ink-soft);
+  }
+
+  .mm-crumb button:hover { color: var(--accent-deep); text-decoration: underline; }
+  .mm-crumb strong { color: var(--ink); font-weight: 600; }
+  .mm-crumb i { font-style: normal; }
+
   .mm-link {
     fill: none;
     stroke: var(--line-strong);
@@ -1183,12 +1216,13 @@
   </div>
   <div class="mindmap" id="mindmap">
     <svg id="mmSvg" role="img" aria-label="知识库思维导图"></svg>
+    <nav class="mm-crumb" id="mmCrumb" aria-label="脑图层级路径"></nav>
     <div class="mm-zoom">
       <button onclick="mmZoom(1.25)" title="放大" aria-label="放大">＋</button>
       <button onclick="mmZoom(0.8)" title="缩小" aria-label="缩小">－</button>
       <button onclick="mmReset()" title="复位" aria-label="复位">⤾</button>
     </div>
-    <div class="mm-hint">点击分类逐层展开 · 点击中心返回上层 · 点击文档打开 · 拖动平移 · 滚轮缩放</div>
+    <div class="mm-hint">点击分类逐层展开 · 点击中心返回上层 · 点击文档打开 · 拖动平移 · 滚轮/双指缩放</div>
   </div>
 </main>
 
@@ -1716,7 +1750,25 @@
 
     svg.setAttribute("viewBox", `0 0 ${MM.W} ${MM.H}`);
     svg.innerHTML = `<g id="mmRoot" transform="translate(${MM.tx} ${MM.ty}) scale(${MM.scale})" transform-origin="${cx} ${cy}">${links}${nodes}</g>`;
+    mmRenderCrumb();
     if (fit) mmFit();
+  }
+
+  // 面包屑：中心节点只显示当前层名称，下钻到第 2 层后就看不出自己属于哪个分类，
+  // 也没法跳级返回（hub 只回一层）。祖先层渲染成按钮，当前层是纯文本。
+  function mmRenderCrumb() {
+    const el = document.getElementById("mmCrumb");
+    if (!el) return;
+    if (!MM.path.length) {
+      el.innerHTML = ""; // 顶层无路径可标，留空避免噪音
+      return;
+    }
+    const [cat, dir] = MM.path;
+    const segs = [`<button data-level="0">全部分类</button>`];
+    const catLabel = esc(CAT_NAMES[cat] || cat);
+    segs.push(dir ? `<button data-level="1">${catLabel}</button>` : `<strong>${catLabel}</strong>`);
+    if (dir) segs.push(`<strong>${esc(displayName(dir))}</strong>`);
+    el.innerHTML = segs.join("<i>›</i>");
   }
 
   // 展开外圈分类时，扇形会伸到画布外（右侧分类尤其明显）。
@@ -1791,6 +1843,14 @@
       }
     });
 
+    // 面包屑跳级：data-level 即目标层深，截断路径直达（hub 只能一层层回）
+    document.getElementById("mmCrumb").addEventListener("click", e => {
+      const btn = e.target.closest("button[data-level]");
+      if (!btn) return;
+      MM.path = MM.path.slice(0, Number(btn.dataset.level));
+      renderMindmap(true);
+    });
+
     // Esc：脑图是覆盖整个阅读区的浮层，用户会本能地按 Esc 退出。
     // 有上层可回则先逐层返回，已在顶层再关闭整个脑图。
     document.addEventListener("keydown", e => {
@@ -1813,19 +1873,44 @@
     // 拖动平移：记录按下时的指针位置与当时的偏移，移动时求差值。
     // 关键是 DRAG_MIN 阈值 —— 点击时手抖 2~3px 很常见，没有阈值的话
     // 每次点节点都会顺带把画布挪走，且 click 落点偏移后可能打不中节点。
+    // 触摸端 touch-action:none 屏蔽了原生手势，双指缩放需要自己实现：
+    // 用 Map 跟踪按下的指针，凑满两指即进入捏合模式（拖动让位）。
     const DRAG_MIN = 4;
+    const pts = new Map(); // pointerId -> 最新屏幕坐标
     let down = false;    // 指针已按下（尚未确定是点击还是拖动）
     let moved = false;   // 已越过阈值，判定为拖动
+    let pinch = null;    // 捏合起始状态 {d0, scale0}；null = 不在捏合中
     let sx = 0, sy = 0, ox = 0, oy = 0;
 
     svg.addEventListener("pointerdown", e => {
       if (e.button !== 0 && e.pointerType === "mouse") return; // 只响应左键
-      down = true; moved = false;
-      sx = e.clientX; sy = e.clientY;
-      ox = MM.tx; oy = MM.ty;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) {
+        // 第二指落下：以当前两指距离和缩放为基准开始捏合。
+        // moved 置 true 让松手后补发的 click 被吞掉，免得捏完误触节点。
+        const [a, b] = [...pts.values()];
+        pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y), scale0: MM.scale };
+        down = false; moved = true;
+        svg.classList.add("dragging");
+      } else if (pts.size === 1) {
+        down = true; moved = false;
+        sx = e.clientX; sy = e.clientY;
+        ox = MM.tx; oy = MM.ty;
+      }
     });
 
     svg.addEventListener("pointermove", e => {
+      if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch && pts.size === 2) {
+        const [a, b] = [...pts.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (!pinch.d0 || !d) return;
+        // 目标倍率相对捏合起点算（而非增量连乘），避免每帧误差累积；
+        // mmZoom 内部有 0.4~3 的钳制，换算成对当前值的因子交给它统一处理
+        const factor = (pinch.scale0 * d) / (pinch.d0 * MM.scale);
+        mmZoom(factor, (a.x + b.x) / 2, (a.y + b.y) / 2); // 锚定两指中点
+        return;
+      }
       if (!down) return;
       const dx = e.clientX - sx;
       const dy = e.clientY - sy;
@@ -1845,6 +1930,20 @@
     });
 
     const endDrag = e => {
+      pts.delete(e.pointerId);
+      if (pinch) {
+        if (pts.size >= 2) return; // 三指以上抬起一根，剩余两指继续捏合
+        pinch = null;
+        svg.classList.remove("dragging");
+        if (pts.size === 1) {
+          // 剩单指未抬：无缝转为拖动，以当前位置为新基准（moved 保持 true 继续吞 click）
+          const p = [...pts.values()][0];
+          down = true;
+          sx = p.x; sy = p.y;
+          ox = MM.tx; oy = MM.ty;
+        }
+        return;
+      }
       if (!down) return;
       down = false;
       svg.classList.remove("dragging");
