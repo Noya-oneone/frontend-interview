@@ -1,23 +1,42 @@
-# GPU加速
+# GPU 加速（合成层）
 
-* 在 CSS 中开启 GPU 加速可以`提高网页性能和渲染效率`，尤其在处理动画和复杂的图形时
+## 核心概念
 
-显式调用 GPU 进行硬件加速
+* 浏览器渲染流水线：`布局（Layout/Reflow）→ 绘制（Paint）→ 合成（Composite）`。
+* 某些元素会被提升为独立的`合成层（composite layer）`，由 GPU 负责变换与叠加。落在合成层上的 `transform / opacity` 动画`跳过布局和绘制`，只走合成 —— 这就是「GPU 加速」快的原因。
+* 因此动画首选 `transform` 和 `opacity`，避免动画 `width / top / margin` 这类必然触发重排的属性。
 
-|方法|描述|影响|
-|----|-----|-----|
-|**`transform:translateZ(0)`**|通过添加`translateZ(0)`触发GPU加速渲染。|强制使用GPU进行3D转换，有助于提升性能。|
-|**`will-change`**|使用`will-change`提示浏览器元素即将改变，优化渲染性能。|使浏览器预处理变化的元素，提高性能。|
-|**`backface-visibility:hidden`**|隐藏元素的背面，启用GPU加速。|通过隐藏元素背面来启用GPU加速，优化3D转换效果。|
-|**`perspective`**|在3D转换中使用`perspective`属性，触发GPU加速。|创建3D深度感，优化GPU渲染效果。|
-|**`opacity`**|对透明度进行调整（如`opacity:0`），可以触发GPU加速。|使用GPU进行透明度变化，提升性能。|
-|**`filter`**|使用CSS`filter`属性（如`blur`,`brightness`）可能启用GPU加速。|应用CSS滤镜时，GPU渲染可能会提高性能。|
+## 触发层提升的常用方式
 
+| 方法 | 说明 |
+|--|--|
+| `transform: translateZ(0)` / `translate3d(0,0,0)` | 经典 hack：3D 变换强制提升为合成层 |
+| `will-change: transform` | 标准做法：提示浏览器该属性即将变化，提前建层 |
+| CSS 动画 / transition 作用于 transform、opacity | 动画执行期间自动提升 |
+| `<video>`、`<canvas>`、`<iframe>` | 天然拥有自己的层 |
+| `position: fixed`、`backface-visibility: hidden`、`perspective` | 特定场景下触发 |
 
-* transform 属性通常会`触发 GPU 硬件加速`。这是因为 transform 属性应用于元素时，浏览器会将该元素提升到一个`新的复合图层（composite layer）`。这样可以`避免整个页面的重排和重绘`，只需要对该图层进行操作，大大提高了渲染效率。
-* `will-change` 属性可以提示浏览器元素即将发生变化，浏览器会提前准备好渲染，以便在变化发生时避免重新渲染。
-* `backface-visibility` 属性可以隐藏元素的背面，这样浏览器就可以只渲染正面的面，提高渲染效率。
-* `perspective` 属性可以创建 3D 深度感，使元素在 3D 空间中更容易被观察。
-* `opacity` 属性可以触发 GPU 硬件加速，以便在不使用复杂的动画或滤镜的情况下，快速地对元素的透明度进行调整。
-* `filter` 属性可以应用 CSS 过滤器，如模糊、亮度等，但由于滤镜操作比较复杂，因此可能需要浏览器进行额外的处理，因此可能需要触发 GPU 硬件加速。
-* z-index 属性用于控制元素的堆叠顺序，它不会创建新的图层，而是依赖于已有的文档流和图层结构。
+```css
+.card {
+  will-change: transform;          /* 只加在真正要动画的元素上 */
+  transition: transform 0.3s ease;
+}
+.card:hover { transform: translateY(-4px); }
+```
+
+## 注意事项（高频追问）
+
+* **层不是越多越好**：每个合成层都占用显存（宽 × 高 × 4 字节），移动端滥用会内存暴涨、反而掉帧。
+* **`will-change` 不要写在全局**：长期挂着等于强制常驻图层；动画结束后应移除（或只在 hover/动画前临时加）。
+* **隐式层提升（layer explosion）**：一个元素提升后，`z-index` 比它高的兄弟元素可能被连带提升，排查时用 DevTools 的 Layers 面板。
+* `z-index` 本身只影响堆叠顺序，不直接创建合成层。
+
+## 常见考点
+
+* **为什么 `transform: translateX(100px)` 比 `left: 100px` 动画流畅？** 前者在合成层上由 GPU 处理、不触发重排重绘，且合成发生在合成线程，主线程卡顿也不影响动画；后者每帧都要重新布局。
+* **如何确认元素被提升了？** DevTools → More tools → Layers / Rendering 面板勾选 Layer borders。
+
+## 拓展阅读
+
+* [MDN - will-change](https://developer.mozilla.org/zh-CN/docs/Web/CSS/will-change)
+* [web.dev - Stick to Compositor-Only Properties](https://web.dev/articles/stick-to-compositor-only-properties-and-manage-layer-count)

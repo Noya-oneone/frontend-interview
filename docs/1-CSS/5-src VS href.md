@@ -1,27 +1,34 @@
 # src VS href
 
-src 用于`嵌入内容`，而 href 用于`指向资源`
-CSS 更适合指向外部资源，以提升性能和维护性。
-JavaScript 在某些情况下需要紧密控制加载和执行顺序，通常会作为内部资源引入，以确保正确的执行时机和逻辑。
+## 核心区别
 
-src 是 source 的缩写，表示资源的来源，而 href 是 hypertext reference 的缩写，表示超文本引用。
-src 用于在 HTML 文档中嵌入外部资源，如图片、视频、音频、JavaScript 文件等。
-<img src="image.png" alt="An image">
+* `src`（source）：**嵌入**资源 —— 资源会被下载并`替换 / 填充到元素内部`，成为文档的一部分。
+* `href`（hypertext reference）：**引用**资源 —— 在文档与资源之间`建立关联关系`，资源不替换元素本身。
+
+```html
+<!-- src：内容被嵌进来 -->
+<img src="image.png" alt="An image" />
 <script src="script.js"></script>
+<iframe src="page.html"></iframe>
+<video src="movie.mp4"></video>
 
-
-href 用于在 HTML 文档中链接到其他资源，如 CSS、JavaScript、图像、视频、音频等。
-
+<!-- href：建立引用 -->
 <a href="https://example.com">Visit Example</a>
-<link href="styles.css" rel="stylesheet">
+<link href="styles.css" rel="stylesheet" />
+```
 
-## 样式表（CSS）需要指向外部资源：
-* `页面加载性能`：浏览器可以并行加载多个外部样式表，而`不会阻塞页面的渲染`。这意味着页面在加载 CSS 的同时，可以`继续解析和显示内容`，提升页面的加载速度和用户体验。
-* `缓存机制`：外部样式表可以`被浏览器缓存`。如果多个页面使用相同的 CSS 文件，浏览器只需要下载一次，提高了资源利用率和加载速度。
-* `维护性`：将样式分离到外部文件中，便于管理和重用。更新样式时，只需修改一个 CSS 文件，不必逐个修改每个页面。
+## 对加载行为的影响（面试深入点）
 
-##  脚本（JavaScript）通常作为内部资源引入
+* `<script src>`：不带 defer/async 时，浏览器解析到它会`暂停 HTML 解析`，下载并执行完才继续 —— src 嵌入的内容是文档逻辑的一部分，必须就位（详见 [script](../0-HTML/<script>.md)）。
+* `<link href>`：CSS `并行下载，不阻塞 HTML 解析`（但阻塞渲染），因为它只是关联关系，浏览器可以边下边解析后续 HTML。
+* `<img src>`：异步下载，不阻塞解析，加载完触发重绘。
 
-* `阻塞行为`：JavaScript 通常会`影响页面的动态行为`。如果脚本引入不当，可能会`阻塞页面的加载和渲染`。因此，脚本通常在需要执行的位置直接引入（例如，页面底部）以确保页面其他部分先行加载。
-* `执行顺序`：脚本需要按特定顺序执行，特别是当它们`依赖于前面的代码`时。将脚本直接嵌入页面可以确保这些脚本`按预期顺序执行`。
-* `局部性`：某些 JavaScript 可能只用于`特定页面`，因此直接嵌入在该页面中更为合理，不需要全局引入。
+## 记忆口径
+
+「src 是`拿来用`（元素没有它就没有内容），href 是`指过去`（元素本身仍是完整的）。」
+
+## 常见考点
+
+* **为什么 CSS 用 link（href）引入而不是内联？** 外部样式可`并行下载、被缓存、多页复用`，改一处全站生效。
+* **`<link>` 只用来引 CSS 吗？** 不是：`rel="icon"`（favicon）、`rel="preload"`（资源预加载）、`rel="dns-prefetch"` / `preconnect`（提前建连）都靠它。
+* **现代 JS 还提倡写内联吗？** 主体逻辑用外部文件 + `defer`（可缓存、可并行）；只有首屏关键小脚本或注入配置才内联。

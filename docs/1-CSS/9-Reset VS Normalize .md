@@ -1,12 +1,30 @@
 # reset.css VS normalize.css
 
-| 特性         | CSS Reset            | Normalize.css    |
-|--------------|--------------------|-----------|
-| **目的**     | 清除浏览器默认样式，提供统一起点。        | 统一浏览器默认样式，保留有用的样式。  |
-| **处理方式** | 重置所有样式为通用值。                   | 调整默认样式以减少差异，保留一些样式。|
-| **影响**     | 移除默认样式，需重新定义所有样式。 | 保留部分默认样式，减少重定义工作量。   |
-| **文件大小** | 通常较小，直接覆盖样式。                 | 相对较大，包含详细的标准化样式。      |
-| **兼容性**   | 提供一致基础样式，可能忽略浏览器特性。     | 考虑浏览器特性，提供更好兼容性。       |
-| **使用情况** | 需要完全自定义样式的项目。               | 需要一致样式同时保留默认样式的项目。   |
-| **维护和更新** | 可能需频繁更新以适应新浏览器。           | 由社区维护，适应浏览器变化。         |
-| **示例**     | `html, body { margin: 0; padding: 0; }` | `h1 { font-size: 2em; }`|
+## 核心区别
+
+| 特性 | CSS Reset | Normalize.css |
+|--|--|--|
+| **目的** | `清零`浏览器默认样式，从白纸开始 | `统一`各浏览器差异，`保留有用的默认样式` |
+| **手段** | 粗暴归零（margin/padding 全 0，标题字号拉平） | 精准修补：只改有差异或有 bug 的地方 |
+| **代价** | 所有元素样式需重新定义（h1 和 p 长得一样） | 几乎零成本，语义元素开箱可用 |
+| **可读性** | 一堆通配规则 | 每条规则都有注释说明修的是哪个浏览器的什么问题 |
+| **典型代码** | `* { margin: 0; padding: 0; }` | `h1 { font-size: 2em; margin: 0.67em 0; }` |
+
+## 现状与演进
+
+* 老式激进 reset（Eric Meyer Reset）已少用；`normalize.css` 曾是标配（Bootstrap 4 的 Reboot 基于它）。
+* 现代项目常用`折中方案`：
+  * `modern-normalize`：normalize 的精简现代版（放弃老 IE）。
+  * Tailwind 的 `Preflight`、各设计系统自带的 base 层：normalize + 少量有主见的 reset（如 `box-sizing: border-box` 全局化）。
+
+```css
+/* 当代项目常见的最小 base 层 */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+img, video { max-width: 100%; display: block; }
+```
+
+## 常见考点
+
+* **选哪个？** 强定制设计系统（所有元素都会重定义）→ reset 思路；常规业务 → normalize / modern-normalize 底座 + 项目级 base 补充。
+* **为什么全局 `box-sizing: border-box`？** 让 width 即所见宽度（含 padding/border），布局心智简单，见 [盒模型](../0-HTML/1-BFC、盒模型（flex&grid）.md)。
