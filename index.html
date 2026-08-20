@@ -648,10 +648,12 @@
 
   .mm-node { cursor: pointer; }
 
-  .mm-node circle {
+  /* 节点是整个胶囊（圆角矩形），rect 本身接收点击 ——
+     早先版本文字 pointer-events:none 且圆点只有 3.5px，标签点上去毫无反应 */
+  .mm-node rect {
     fill: var(--paper);
     stroke: var(--line-strong);
-    stroke-width: 1.4;
+    stroke-width: 1.2;
     transition: fill 0.18s, stroke 0.18s;
   }
 
@@ -663,28 +665,27 @@
     user-select: none;
   }
 
-  .mm-node:hover circle { stroke: var(--accent); fill: var(--accent-tint); }
+  .mm-node:hover rect { stroke: var(--accent); fill: var(--accent-tint); }
   .mm-node:hover text { fill: var(--accent-deep); }
 
-  .mm-hub circle { fill: var(--accent); stroke: var(--accent-deep); stroke-width: 2; }
+  .mm-hub rect { fill: var(--accent); stroke: var(--accent-deep); stroke-width: 1.6; }
   .mm-hub text { fill: var(--seal-text); font-weight: 600; letter-spacing: 0.08em; }
-  /* 中心的计数与返回提示是次要信息，压低到 0.72 不透明度，避免与标题抢注意力 */
+  /* 根节点的计数与返回提示是次要信息，压低到 0.72 不透明度，避免与标题抢注意力 */
   .mm-hub .mm-hub-sub { font-weight: 400; opacity: 0.72; letter-spacing: 0.04em; }
-  .mm-hub:hover circle { fill: var(--accent-deep); stroke: var(--accent-deep); }
+  .mm-hub:hover rect { fill: var(--accent-deep); }
   .mm-hub:hover text { fill: var(--seal-text); }
-  /* 顶层中心不可点：光标与 hover 都退回静态，避免暗示可交互 */
+  /* 顶层根节点不可点：光标与 hover 都退回静态，避免暗示可交互 */
   .mm-hub-static { cursor: default; }
-  .mm-hub-static:hover circle { fill: var(--accent); stroke: var(--accent-deep); }
+  .mm-hub-static:hover rect { fill: var(--accent); }
 
   .mm-cat text { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
   .mm-cat .mm-cnt { fill: var(--ink-faint); font-size: 11px; font-weight: 400; }
 
-  /* 可下钻节点填实心，与叶子文档的空心圈区分：实心 = 还有下一层 */
-  .mm-cat circle { fill: var(--accent-tint); stroke: var(--accent); }
+  /* 可下钻节点填底色，与叶子文档的素色胶囊区分：有底 = 还有下一层 */
+  .mm-cat rect { fill: var(--accent-tint); stroke: var(--accent); }
 
-  .mm-leaf circle { stroke-width: 1.1; }
-  .mm-leaf text { font-size: 11px; fill: var(--ink-soft); }
-  .mm-leaf.active circle { fill: var(--seal-red); stroke: var(--seal-red); }
+  .mm-leaf text { font-size: 12.5px; fill: var(--ink-soft); }
+  .mm-leaf.active rect { stroke: var(--seal-red); }
   .mm-leaf.active text { fill: var(--seal-red); font-weight: 600; }
 
   .mm-hint {
@@ -1222,7 +1223,7 @@
       <button onclick="mmZoom(0.8)" title="缩小" aria-label="缩小">－</button>
       <button onclick="mmReset()" title="复位" aria-label="复位">⤾</button>
     </div>
-    <div class="mm-hint">点击分类逐层展开 · 点击中心返回上层 · 点击文档打开 · 拖动平移 · 滚轮/双指缩放</div>
+    <div class="mm-hint">点击分类展开 · 点击文档打开 · 根节点/面包屑返回 · 滚轮浏览 · Ctrl+滚轮或双指缩放</div>
   </div>
 </main>
 
@@ -1594,10 +1595,11 @@
   }
 
   // ===== 思维导图 =====
-  // 逐层下钻：每次只画「当前层」的一张放射图，点节点就把它变成新的中心。
-  // 早先试过在总图上就地展开分类，但算法类 111 篇会让标签缩到 6px 不可读；
-  // 下钻后每层节点数都在 20 上下，字号得以保持。
-  //   第 0 层：全部分类（16）
+  // 逐层下钻 + 横向树：根节点在左，当前层的子节点在右侧排成一列。
+  // 早先版本是放射图，实测两个问题：环形排布打乱了编号前缀的学习顺序、
+  // 标签四散难扫读；且下钻到 111 篇的分类时标签必然压字。
+  // 树形列表天然保序，行距恒定，篇数多时靠滚动而非缩小字号。
+  //   第 0 层：全部分类
   //   第 1 层：某分类的子目录 + 根层级文档
   //   第 2 层：某子目录内的文档
   const MM = {
@@ -1605,11 +1607,10 @@
     scale: 1,
     tx: 0,
     ty: 0,
+    activeY: null,   // 当前在读文档所在行的 y，mmFit 用它把视野对准该行
     W: 1200,         // viewBox 逻辑尺寸，实际显示由 CSS 拉伸
     H: 800
   };
-
-  const MM_RING_R = 250;  // 放射环半径
 
   // 当前层要画的节点。统一返回 {kind, label, sub, key?, path?}，
   // 让渲染只关心画什么，不关心自己处在哪一层。
@@ -1668,57 +1669,64 @@
     return { title: displayName(dir), sub: `${mmNodes().length} 篇` };
   }
 
-  // 文档标签太长会盖住邻居，截断显示，完整名放 <title>
+  // 文档标签太长会把胶囊撑得过宽，截断显示，完整名放 <title>
   function mmTrim(s, max) {
     return s.length > max ? s.slice(0, max - 1) + "…" : s;
   }
 
-  // 贝塞尔连线：从 (x1,y1) 到 (x2,y2)，控制点取中点偏移，画出柔和的弧
-  function mmCurve(x1, y1, x2, y2) {
-    const mx = (x1 + x2) / 2;
-    const my = (y1 + y2) / 2;
-    return `M${x1.toFixed(1)},${y1.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+  // 估算文本渲染宽度（决定胶囊宽度）。SVG 里没有现成的 measureText，
+  // 按「CJK 全角 ≈ 1em、其余 ≈ 0.55em」估算，误差靠左右 padding 吸收
+  function mmTextW(s, size) {
+    let w = 0;
+    for (const ch of String(s)) w += ch.charCodeAt(0) > 255 ? 1 : 0.55;
+    return w * size;
   }
 
-  // fit=true 时渲染后自动缩放到适合视野（展开/收起分类、首次打开）
+  // 横向 S 形三次贝塞尔：控制点取水平中点，两端切线水平——脑图连线的经典画法
+  function mmCurve(x1, y1, x2, y2) {
+    const mx = (x1 + x2) / 2;
+    return `M${x1.toFixed(1)},${y1.toFixed(1)} C${mx.toFixed(1)},${y1.toFixed(1)} ${mx.toFixed(1)},${y2.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+  }
+
+  // fit=true 时渲染后自动调整视野（下钻/返回、首次打开）
   function renderMindmap(fit = false) {
     const svg = document.getElementById("mmSvg");
     if (!svg) return;
 
-    const cx = MM.W / 2;
-    const cy = MM.H / 2;
     const items = mmNodes();
     if (!items.length) return;
 
+    const c = mmCenter();
+    const back = MM.path.length > 0;
+
+    // 根节点靠左，子节点在右侧排成一列，自上而下即 catalog 顺序 ——
+    // 编号前缀是作者编排的学习顺序，纵向列表保序，放射环会把它打乱
+    const ROW = 34;                                       // 行距恒定，不随篇数压缩
+    const rootLeft = 110;
+    const rw = Math.max(150, mmTextW(c.title, 15) + 56);  // 根胶囊宽度随标题自适应
+    const rh = back ? 72 : 58;                            // 有返回提示时高一档
+    const childX = rootLeft + rw + 88;
+    const totalH = items.length * ROW;
+    const top = Math.max(40, (MM.H - totalH) / 2);        // 矮列表垂直居中，高列表从顶排起
+    const rootY = top + totalH / 2;
+    const rootRight = rootLeft + rw;
+
     let links = "";
     let nodes = "";
-
-    // 单环装不下就分两圈：环顶/环底的标签近乎水平排列，靠撑大半径来拉开行距
-    // 收效甚微（leetcode 65 篇实测仍有 17 处压字），分环能直接把密度减半。
-    const RING_MAX = 26;                                  // 单环最多容纳的节点数
-    const rings = Math.min(3, Math.ceil(items.length / RING_MAX));
-    const perRing = Math.ceil(items.length / rings);
-    // 间距按弧长算，但真正决定是否压字的是垂直行距，故留出 44 的余量
-    const base = Math.max(MM_RING_R, (44 * perRing) / (Math.PI * 2));
+    MM.activeY = null;
 
     items.forEach((it, i) => {
-      const r = i % rings;                                // 轮流分配到内/外环
-      const idx = Math.floor(i / rings);                  // 该节点在本环内的序号
-      // 本环实际节点数：前 (总数 % 环数) 个环各多分到 1 个
-      const count = Math.floor(items.length / rings) + (r < items.length % rings ? 1 : 0);
-      const ring = base + r * 132;                        // 外环再推远，留出标签空间
-      // 均分整圆，从正上方（-90°）开始；外环整体偏移半格，与内环标签错开
-      const ang = (idx / count) * Math.PI * 2 - Math.PI / 2 + (r / rings) * (Math.PI * 2 / count);
-      const x = cx + Math.cos(ang) * ring;
-      const y = cy + Math.sin(ang) * ring * 0.82;         // 压成横向椭圆，贴合 3:2 画布
-      // 左半边的标签右对齐并画在节点左侧，避免文字越过节点伸向画布外
-      const left = Math.cos(ang) < -0.01;
-      const anchor = left ? "end" : "start";
-      const dx = left ? -11 : 11;
+      const y = top + i * ROW + ROW / 2;
       const isDoc = it.kind === "doc";
       const isActive = isDoc && currentIndex >= 0 && flatList[currentIndex] && flatList[currentIndex].path === it.path;
+      if (isActive) MM.activeY = y;
 
-      links += `<path class="mm-link${isDoc ? "" : " branch"}" d="${mmCurve(cx, cy, x, y)}"/>`;
+      const label = mmTrim(it.label, 30);
+      const cntW = isDoc ? 0 : mmTextW(it.sub, 11) + 10;
+      const w = mmTextW(label, isDoc ? 12.5 : 13) + cntW + 30;
+      const h = 27;
+
+      links += `<path class="mm-link${isDoc ? "" : " branch"}" d="${mmCurve(rootRight, rootY, childX, y)}"/>`;
 
       // 可下钻节点带计数，叶子不带
       const attr = isDoc
@@ -1730,26 +1738,25 @@
 
       nodes += `<g class="mm-node ${cls}${isActive ? " active" : ""}" ${attr} role="button" tabindex="0">
         <title>${esc(title)}</title>
-        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isDoc ? 3.5 : 6}"/>
-        <text x="${(x + dx).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}">${esc(mmTrim(it.label, 24))}${cnt}</text>
+        <rect x="${childX}" y="${(y - h / 2).toFixed(1)}" width="${w.toFixed(0)}" height="${h}" rx="${h / 2}"/>
+        <text x="${childX + 15}" y="${y.toFixed(1)}">${esc(label)}${cnt}</text>
       </g>`;
     });
 
-    // 中心节点：非顶层时点击返回上一层
-    const c = mmCenter();
-    const back = MM.path.length > 0;
-    // 顶层没有上一层可返回，此时中心只是标题：去掉 button 语义与焦点，
+    // 根节点：非顶层时点击返回上一层。
+    // 顶层没有上一层可返回，此时它只是标题：去掉 button 语义与焦点，
     // 免得出现「看着能点、点了没反应」的假可交互
+    const rcx = rootLeft + rw / 2;
     nodes += `<g class="mm-node mm-hub${back ? "" : " mm-hub-static"}" ${back ? 'data-hub="1" role="button" tabindex="0"' : 'aria-hidden="true"'}>
       <title>${back ? "返回上一层" : "全部分类"}</title>
-      <circle cx="${cx}" cy="${cy}" r="46"/>
-      <text x="${cx}" y="${cy - (back ? 12 : 6)}" text-anchor="middle" font-size="${c.title.length > 8 ? 12 : 15}">${esc(mmTrim(c.title, 11))}</text>
-      <text x="${cx}" y="${cy + 6}" text-anchor="middle" font-size="10" class="mm-hub-sub">${esc(c.sub)}</text>
-      ${back ? `<text x="${cx}" y="${cy + 24}" text-anchor="middle" font-size="10" class="mm-hub-sub">← 返回</text>` : ""}
+      <rect x="${rootLeft}" y="${(rootY - rh / 2).toFixed(1)}" width="${rw.toFixed(0)}" height="${rh}" rx="14"/>
+      <text x="${rcx.toFixed(1)}" y="${(rootY - (back ? 16 : 8)).toFixed(1)}" text-anchor="middle" font-size="${c.title.length > 8 ? 13 : 15}">${esc(mmTrim(c.title, 11))}</text>
+      <text x="${rcx.toFixed(1)}" y="${(rootY + (back ? 4 : 12)).toFixed(1)}" text-anchor="middle" font-size="10.5" class="mm-hub-sub">${esc(c.sub)}</text>
+      ${back ? `<text x="${rcx.toFixed(1)}" y="${(rootY + 22).toFixed(1)}" text-anchor="middle" font-size="10.5" class="mm-hub-sub">← 返回</text>` : ""}
     </g>`;
 
     svg.setAttribute("viewBox", `0 0 ${MM.W} ${MM.H}`);
-    svg.innerHTML = `<g id="mmRoot" transform="translate(${MM.tx} ${MM.ty}) scale(${MM.scale})" transform-origin="${cx} ${cy}">${links}${nodes}</g>`;
+    svg.innerHTML = `<g id="mmRoot" transform="translate(${MM.tx} ${MM.ty}) scale(${MM.scale})" transform-origin="${MM.W / 2} ${MM.H / 2}">${links}${nodes}</g>`;
     mmRenderCrumb();
     if (fit) mmFit();
   }
@@ -1771,9 +1778,10 @@
     el.innerHTML = segs.join("<i>›</i>");
   }
 
-  // 展开外圈分类时，扇形会伸到画布外（右侧分类尤其明显）。
-  // 用实际渲染包围盒回算缩放与平移，把内容收进视野 —— 必须在 innerHTML 之后取，
-  // 因为 getBBox 只对已插入文档的元素有效。
+  // 树形布局宽度有上限（标签截断），高度随篇数线性增长（65 篇 ≈ 2200）。
+  // 若像放射图那样整体缩到入画，字号会小到不可读；改为只按宽度适配，
+  // 高列表顶部对齐、靠滚轮平移浏览 —— 字号恒定，篇数多只是列表变长。
+  // 必须在 innerHTML 之后调用，getBBox 只对已插入文档的元素有效。
   function mmFit() {
     const svg = document.getElementById("mmSvg");
     const root = document.getElementById("mmRoot");
@@ -1789,22 +1797,28 @@
     }
     if (!box.width || !box.height) return;
 
-    const pad = 48;
-    const scale = Math.min(
-      (MM.W - pad * 2) / box.width,
-      (MM.H - pad * 2) / box.height,
-      1.6 // 内容很小时不要放得过大
-    );
-    // 下限 0.75：算法类 111 篇若一味缩到全部入画，字号会小到不可读。
-    // 宁可让边缘溢出、由用户拖动查看，也不要牺牲可读性。
-    MM.scale = Math.max(0.75, scale);
-    // 把包围盒中心对齐到画布中心：先按 transform-origin(cx,cy) 缩放，再补平移
+    const pad = 40;
     const cx = MM.W / 2;
     const cy = MM.H / 2;
-    const bcx = box.x + box.width / 2;
-    const bcy = box.y + box.height / 2;
-    MM.tx = cx - (cx + (bcx - cx) * MM.scale);
-    MM.ty = cy - (cy + (bcy - cy) * MM.scale);
+    // 1.15 上限：矮列表（如顶层 17 项）适度放大即可，不要糊满全屏
+    MM.scale = Math.min((MM.W - pad * 2) / box.width, 1.15);
+    const s = MM.scale;
+
+    // 水平居中（transform-origin 在画布中心，先缩放再补平移）
+    MM.tx = (cx - (box.x + box.width / 2)) * s;
+
+    if (box.height * s <= MM.H - pad * 2) {
+      // 全部装得下：垂直居中
+      MM.ty = (cy - (box.y + box.height / 2)) * s;
+    } else {
+      // 装不下：默认顶部对齐；正在读的文档在深处时改为对准它，
+      // 并夹在内容边界内，避免上下露出大片空白
+      const tyMax = pad - cy - (box.y - cy) * s;                    // 内容顶边贴住上 pad
+      const tyMin = MM.H - pad - cy - (box.y + box.height - cy) * s; // 内容底边贴住下 pad
+      MM.ty = MM.activeY == null
+        ? tyMax
+        : Math.min(tyMax, Math.max(tyMin, (cy - MM.activeY) * s));
+    }
     mmApply();
   }
 
@@ -1864,10 +1878,20 @@
       }
     });
 
-    // 滚轮缩放
+    // 滚轮 = 平移：树形列表高度随篇数增长，滚轮的首要职责是像页面一样
+    // 上下滚着看。缩放走 Ctrl/⌘+滚轮 —— macOS 触控板捏合正是以
+    // ctrlKey=true 的 wheel 事件上报的，与浏览器/Figma 的习惯一致。
     svg.addEventListener("wheel", e => {
       e.preventDefault();
-      mmZoom(e.deltaY < 0 ? 1.12 : 0.89, e.clientX, e.clientY);
+      if (e.ctrlKey || e.metaKey) {
+        mmZoom(e.deltaY < 0 ? 1.12 : 0.89, e.clientX, e.clientY);
+        return;
+      }
+      const rect = svg.getBoundingClientRect();
+      const k = MM.W / (rect.width || MM.W); // 屏幕像素 → viewBox 逻辑坐标
+      MM.tx -= e.deltaX * k;
+      MM.ty -= e.deltaY * k;
+      mmApply();
     }, { passive: false });
 
     // 拖动平移：记录按下时的指针位置与当时的偏移，移动时求差值。
