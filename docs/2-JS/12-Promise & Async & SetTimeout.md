@@ -46,6 +46,9 @@ function promiseAll(promises) {
     const results = [];
     let count = 0;
 
+    // 边界：空数组必须立即 resolve，否则 forEach 不执行、永远 pending
+    if (promises.length === 0) return resolve(results);
+
     promises.forEach((promise, index) => {
       Promise.resolve(promise).then((value) => {
         results[index] = value;
@@ -103,6 +106,8 @@ function promiseAny(promises) {
 
 
 ## 手写Promise
+
+> 简化版说明：规范（Promises/A+）要求 then 回调必须`异步执行（微任务）`，严格实现应把 `fulfilledCallback / rejectedCallback` 包进 `queueMicrotask(...)`；此处为聚焦主流程省略。另外完整的 resolutionProcedure 还需处理 thenable 与自引用循环，面试可口述。
 
 ```javascript
 
@@ -207,6 +212,8 @@ class MyPromise {
     return new MyPromise((resolve, reject) => {
       const results = [];
       let count = 0;
+
+      if (promises.length === 0) return resolve(results);
 
       promises.forEach((promise, index) => {
         MyPromise.resolve(promise).then((value) => {

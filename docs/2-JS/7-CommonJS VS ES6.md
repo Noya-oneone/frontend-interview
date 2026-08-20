@@ -7,20 +7,12 @@
 * `模块化历史`：JavaScript 一直没有模块（module）体系，只用一个文件来写程序代码，对于开发维护大型的、复杂的项目是极不友好的。后来，在社区相继推出了 commonJS、AMD、CMD、UMD、ES module 等模块。
 
 
-## 执行JS - JavaScript 引擎
+## 各环境的模块支持
 
-### Node 环境 （Common JS） 
-
-* node环境下，Esmodule和commonjs规范下的代码不能互相混用
-* ES module在node环境下也能执行，需要wepack打包工具打包文件，将代码转换成node可执行的代码！
-
-CommonJS模块在第一次加载时会被缓存，后续加载同一个模块时会返回缓存的版本。这有助于提高性能，但也意味着模块的初始化代码只会执行一次。
-CommonJS模块支持循环依赖，但需要注意的是，循环依赖可能会导致模块加载顺序和结果不确定
-
-
-### 浏览器环境 (Commonjs 和 ES module) 
-
-* AMD 和 CMD 都不能在浏览器环境中执行
+* **Node 环境**：原生 CommonJS；`v12+ 也原生支持 ES Module`（`.mjs` 后缀或 package.json 设 `"type": "module"`），无需打包工具。两者互操作有限制：ESM 可以 `import` CJS，CJS 不能同步 `require` ESM（Node 22 起部分放开）。
+  * CommonJS 模块`第一次加载后被缓存`，后续 require 返回缓存版本 —— 初始化代码只执行一次。
+  * CommonJS 支持循环依赖，但拿到的是`执行到一半的部分导出`，顺序敏感。
+* **浏览器环境**：原生支持 ES Module（`<script type="module">`）；`不支持 CommonJS`（无 require/module 对象）；AMD/CMD 正是`为浏览器设计`的方案，但需要加载器库（require.js / sea.js）配合，如今已被 ESM + 打包器取代。
 
 ## 2009 CommonJS 主要应用场景是服务器端、同步加载模块 require(自定义模块/系统模块/第三方库模块);
 
@@ -123,22 +115,31 @@ export default SomeObject;
 import moduleName from "./module";
 ```
 
-## CommonJS VS ES6 Module
+## CommonJS VS ES6 Module（核心对比）
 
-* UMD： 通用模块定义，兼容 AMD 和 CommonJS 规范，并且还能在没有模块加载器的环境中使用（如直接在浏览器中使用全局变量）。
-* CommonJS ： 是**同步加载**模块，适合在**服务器**端使用 ```const module = require('module')``` ```module.exports = module;``` this 的值是 exports 对象
+| 特性 | CommonJS | ES Module |
+|--|--|--|
+| **语法** | `require()` / `module.exports` | `import` / `export` |
+| **加载时机** | `运行时`同步加载（require 是普通函数调用，可写在任何位置、条件分支里） | `编译期`静态解析（import 必须在顶层）；动态加载用 `import()` 返回 Promise |
+| **导出内容** | `值的拷贝`：导出后模块内部变量再变，外部拿到的还是旧值 | `值的引用（live binding）`：内部更新，导入方实时可见，且导入的绑定只读 |
+| **this 指向** | `exports` 对象 | `undefined`（模块自动严格模式） |
+| **静态分析** | 不可（依赖运行时） | 可以 → 支撑 `tree-shaking`、循环依赖检查 |
+| **环境** | Node 原生；浏览器需打包 | 现代浏览器与 Node 12+ 原生 |
 
-* ES6 Module： ES6 模块是**异步加载**，适合在**浏览器端**使用  ```import module from 'module';```  ```export default module;``` 在 ES6 模块中，this 的值是 undefined。
+「值拷贝 vs 动态绑定」示例（高频追问）：
 
+```js
+// counter 模块
+let count = 0;
+export const inc = () => count++;
+export { count };            // ESM 导出绑定
 
-| 特性        | `require` (CommonJS)| `import` (ES6 Modules) |
-|---|--|-|
-| **语法** | `const module = require('module');`    | `import module from 'module';`  |
-| **加载方式**  | 同步，动态加载    | 静态，支持异步动态加载（`import()`）|
-| **模块系统**  | Node.js 专用，使用 `module.exports` 和 `exports` | 标准化模块系统，支持 `export` 和 `import` |
-| **动态加载**  | 支持动态加载模块  | 静态导入，使用 `import()` 实现动态加载   |
-| **兼容性**    | Node.js 和部分前端工具（如 Webpack）   | 现代浏览器和 Node.js（从 v12 开始）  |
-| **使用场景**  | 服务器端开发和同步模块加载  | 现代前端开发和模块优化|
+// 使用方
+import { count, inc } from './counter.js';
+inc();
+console.log(count);          // 1  ESM：实时反映
 
-    * CommonJS: this 的值是 exports 对象
-    * ES6 模块中: this 的值是 undefined
+// CommonJS 同样写法拿到的是 require 时刻的拷贝，仍是 0
+```
+
+* UMD：通用模块定义，运行时探测环境，兼容 AMD + CommonJS + 全局变量，常作为库的兜底产物格式。
