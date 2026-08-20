@@ -2,105 +2,75 @@
 
 ## 常见请求头
 
-* `User-Agent`：客户端的信息，如 User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3。
-* `Accept`：客户端能够接收的内容类型，如 Accept: text/html。
-* `Accept-Encoding`：客户端能够接收的编码方式，如 Accept-Encoding: gzip, deflate。
-`Accept-Language`：客户端的语言设置，如 Accept-Language: en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7。
-`Authorization`：用于 HTTP 认证的凭证，如 Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==。
-`Cache-Control`：**指定缓存策略**，如 **Cache-Control: no-cache**。
-`Connection`：**指定是否需要持久连接**，如 **Connection: keep-alive**。
-`Content-Length`：请求体的长度，如 Content-Length: 348。
-`Content-Type`：请求体的媒体类型，如 Content-Type: application/json。
-`Cookie`：客户端存储的 Cookie，如 Cookie: name=value。
-`Host`：请求的目标服务器，如 Host: <www.example.com。>
-`Referer`：发起请求的页面的 URL， Referer 头部在 HTTP 请求中提供了用户来源的上下文，可以用于安全验证、流量分析等目的。
+| 头 | 作用 | 示例 |
+|--|--|--|
+| `Host` | 目标主机（HTTP/1.1 必带，虚拟主机的依据） | `Host: www.example.com` |
+| `User-Agent` | 客户端标识 | `Mozilla/5.0 ... Chrome/120` |
+| `Accept` / `Accept-Encoding` / `Accept-Language` | 内容协商：能接收的类型 / 压缩算法 / 语言 | `Accept: text/html`、`Accept-Encoding: gzip, br` |
+| `Content-Type` / `Content-Length` | 请求体的媒体类型 / 字节长度 | `Content-Type: application/json` |
+| `Authorization` | 认证凭证 | `Authorization: Bearer <token>` |
+| `Cookie` | 携带客户端 Cookie | `Cookie: sid=abc` |
+| `Origin` / `Referer` | 请求来源（Origin 只有源，Referer 含完整路径） | 跨域判断 / 来源分析、防盗链 |
+| `Cache-Control` / `If-None-Match` / `If-Modified-Since` | 缓存控制与协商验证 | 见 [协商缓存 & 强缓存](./2-协商缓存%20&%20强缓存.md) |
+| `Connection` | 连接管理 | `Connection: keep-alive` |
 
-<!-- HTML 页面中的 Referrer-Policy 设置 -->
-<meta name="referrer" content="no-referrer">
+## 常见响应头
 
-# `在 Nginx 配置文件中设置 Referrer-Policy`
+| 头 | 作用 |
+|--|--|
+| `Content-Type` | 响应体类型与编码，如 `text/html; charset=utf-8` |
+| `Set-Cookie` | 下发 Cookie（HttpOnly / Secure / SameSite 见 [Cookie & Storage](../2-JS/8-Cookie%20&%20storage%20&%20indexDB%20.md)） |
+| `Cache-Control` / `ETag` / `Last-Modified` | 缓存策略 |
+| `Access-Control-Allow-*` | CORS 授权（见 [跨域问题](./3-跨域问题.md)） |
+| `Content-Encoding` | 实际使用的压缩算法，如 `gzip`、`br` |
+| `Location` | 重定向目标（配合 3xx） |
+| `X-Frame-Options` / `Content-Security-Policy` / `Strict-Transport-Security` | 安全响应头：防嵌套点击劫持 / CSP / 强制 HTTPS |
+
+## Referer 专题
+
+`Referer` 表示`发起请求的页面 URL`，提供用户来源上下文，用于流量分析、防盗链、安全校验。
+
+* 控制泄露范围用 `Referrer-Policy`（现代浏览器默认 `strict-origin-when-cross-origin`：跨域时只发送源）：
+
+```html
+<meta name="referrer" content="no-referrer" />
+```
+
+```nginx
 add_header Referrer-Policy "no-referrer";
-
-* `在服务器端验证 Referer：`
-
-```javascript
-    const express = require('express');
-    const app = express();
-    const VALID_REFERRERS = ['https://www.example.com', 'https://www.anotherdomain.com'];
-    app.use((req, res, next) => {
-    const referer = req.get('Referer');
-    if (referer && VALID_REFERRERS.some(validReferrer => referer.startsWith(validReferrer))) {
-        next(); // 允许请求继续
-    } else {
-        res.status(403).send('Forbidden'); // 拒绝请求
-    }
-    });
-
-    app.get('/', (req, res) => {
-    res.send('Hello, world!');
-    });
-
-    app.listen(3000, () => {
-    console.log('Server running on port 3000');
-    });
 ```
 
+* 服务端校验来源（防盗链 / 简易 CSRF 辅助）：
 
-* `在前端使用 Referer `（前端代码通常不会直接修改 Referer 头部，但可以通过 JavaScript 获取当前页面的 URL，并作为请求的一部分：）
-
-```javascript
-const referer = document.referrer; // 获取当前页面的 Referer
-
-fetch('https://api.example.com/data', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-Referer': referer, // 将 Referer 添加到自定义头部中
-  },
-  body: JSON.stringify({ some: 'data' }),
-})
+```js
+const VALID = ['https://www.example.com'];
+app.use((req, res, next) => {
+  const referer = req.get('Referer');
+  if (referer && VALID.some((v) => referer.startsWith(v))) return next();
+  res.status(403).send('Forbidden');
+});
 ```
 
-## Cache-Control
+* 前端读当前页来源：`document.referrer`（JS 不能直接改 Referer 头，可放进自定义头传给后端）。
 
-* https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
+## Cache-Control 指令速查
 
-### 指令
+| 指令 | 含义 | 缓存行为 |
+|--|--|--|
+| `max-age=N` | N 秒内为强缓存 | 未过期不请求服务器 |
+| `public` | 任何缓存均可存 | 浏览器、代理、CDN 都缓存 |
+| `private` | 仅浏览器可存 | CDN / 共享缓存不缓存 |
+| `no-cache` | 可存但必须先验证 | 每次协商（ETag / Last-Modified） |
+| `no-store` | 什么都不存 | 永远回源 |
+| `must-revalidate` | 过期后必须验证 | 不允许使用陈旧副本 |
 
+## 缓存收益（量级感受）
 
-| Cache-Control 属性 | 含义说明 | 缓存行为 |
-|-------------------|----------|----------|
-| max-age=秒数 | 指定资源在多少秒内为强缓存 | 未过期前直接使用缓存，不请求服务器 |
-| public | 资源可被任何缓存缓存 | 浏览器、代理、CDN 都可以缓存 |
-| private | 资源仅允许浏览器缓存 | CDN / 共享缓存不可缓存 |
-| no-cache | 禁止直接使用缓存，必须重新验证 | 每次请求都会进行协商缓存（ETag / Last-Modified） |
-| no-store | 禁止缓存任何内容 | 浏览器和中间缓存都不存储，永远回源 |
-| must-revalidate | 缓存过期后必须重新验证 | 过期缓存不能被直接使用 |
+* 带宽：10 次访问 5MB 资源，无缓存 50MB → 有缓存约 5MB（1 次下载 + 9 次 304 验证）。
+* 速度：网络下载秒级 → 磁盘读取约 0.1s → 内存读取约 1ms。
+* 服务器：百万用户下 90% 缓存命中率可把回源流量降一个数量级。
 
+## 常见考点
 
-### 缓存好处
-
-#### 节省带宽
-
-```
-无缓存：
-用户访问 10 次 → 下载 10 次 5MB 视频 = 50MB 流量
-
-有缓存：
-用户访问 10 次 → 下载 1 次 5MB + 9 次验证 = ~5MB 流量
-```
-
-#### 提升速度
-
-```
-从网络下载：  5 秒
-从磁盘读取：  0.1 秒（快 50 倍）
-从内存读取：  0.001 秒（快 5000 倍）
-```
-
-#### 减轻服务器压力
-
-```
-100 万用户 × 5MB × 无缓存 = 5 PB 流量
-100 万用户 × 5MB × 有缓存 = 50 TB 流量（90% 命中率）
-```
+* **哪些请求头不能被 JS 修改？** `Host`、`Origin`、`Referer`、`Cookie`（fetch 中）等由浏览器控制的「禁止修改头」——这是 CSRF 防御能信任 Origin 的原因。
+* **Content-Type 常见取值？** `application/json`、`application/x-www-form-urlencoded`（表单默认）、`multipart/form-data`（文件上传）、`text/event-stream`（SSE）。
